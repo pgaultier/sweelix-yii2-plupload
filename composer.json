@@ -1,0 +1,19 @@
+{
+	"name" : "sweelix/yii2-plupload",
+	"description" : "PHP 5.4+ Sweelix extensions for Yii 2",
+	"type": "yii2-extension",
+	"keywords" : [ "behaviors", "yii", "filters" ],
+	"license" : "BSD-3-Clause",
+	"authors" : [ {
+	"name" : "Philippe Gaultier",
+		"email" : "pgaultier@sweelix.net"
+	} ],
+	"require" : {
+		"sweelix/plupload" : "*"
+	},
+	"autoload" : {
+		"psr-4" : {
+			"sweelix\\yii2\\plupload\\" : "src"
+		}
+	}
+}
