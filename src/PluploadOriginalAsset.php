@@ -1,6 +1,6 @@
 <?php
 /**
- * File PluploadAsset.php
+ * File PluploadOriginalAsset.php
  *
  * PHP version 5.4+
  *
@@ -28,13 +28,9 @@ use yii\web\AssetBundle;
  * @package   sweelix.yii2.plupload
  * @since     XXX
  */
-class PluploadAsset extends AssetBundle {
-	public $sourcePath = '@sweelix/yii2/plupload/assets';
+class PluploadOriginalAsset extends AssetBundle {
+	public $sourcePath = '@vendor/sweelix/plupload/js';
 	public $js = [
-		'sweelix.plupload.js',
+		'plupload.full.min.js',
 	];
-    public $depends = [
-        'yii\web\JqueryAsset',
-        'sweelix\yii2\plupload\PluploadOriginalAsset',
-    ];
 }

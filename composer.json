@@ -9,7 +9,6 @@
 		"email" : "pgaultier@sweelix.net"
 	} ],
 	"require" : {
-		"sweelix/plupload" : "*"
 	},
 	"autoload" : {
 		"psr-4" : {
