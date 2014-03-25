@@ -65,7 +65,6 @@ class UploadFile extends Action {
 			if(is_dir($targetPath) == false) {
 				mkdir($targetPath, 0777, true);
 			}
-
 			// create unique fileName only if chunking is disabled
 			if (($chunks < 2) && (file_exists($targetPath . DIRECTORY_SEPARATOR . $fileName) == true)) {
 				$fileNameInfo = pathinfo($fileName);
