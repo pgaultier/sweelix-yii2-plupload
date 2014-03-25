@@ -7,15 +7,19 @@
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   3.0.1
+ * @version   XXX
  * @link      http://www.sweelix.net
  * @category  actions
- * @package   sweelix.yii1.web.actions
+ * @package   sweelix.yii2.plupload.actions
  */
 
-namespace sweelix\yii1\web\actions;
-use sweelix\yii1\web\UploadedFile;
-use sweelix\yii1\web\Image;
+namespace sweelix\yii2\plupload\actions;
+use sweelix\yii2\plupload\components\UploadedFile;
+use yii\web\Response;
+use yii\base\Action;
+use yii\helpers\Url;
+use Yii;
+use Exception;
 
 /**
  * This PreviewFile handle the xhr / swfupload process for preview
@@ -23,13 +27,13 @@ use sweelix\yii1\web\Image;
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   3.0.1
+ * @version   XXX
  * @link      http://www.sweelix.net
  * @category  actions
- * @package   sweelix.yii1.web.actions
- * @since     2.0.0
+ * @package   sweelix.yii2.plupload.actions
+ * @since     XXX
  */
-class PreviewFile extends \CAction {
+class PreviewFile extends Action {
 	public $width = 100;
 	public $height = 100;
 	public $fit = true;
@@ -38,18 +42,17 @@ class PreviewFile extends \CAction {
 	 * Run the action and perform the preview process
 	 *
 	 * @return void
-	 * @since  2.0.0
+	 * @since  XXX
 	 */
 	public function run($fileName, $mode=null) {
 		try {
-			\Yii::trace(__METHOD__.'()', 'sweelix.yii1.web.actions');
 			if($mode == 'json') {
 				$this->generateJson($fileName);
 			} elseif($mode == 'raw') {
 				$this->generateImage($fileName);
 			}
-		} catch(\Exception $e) {
-			\Yii::log('Error in '.__METHOD__.'():'.$e->getMessage(), \CLogger::LEVEL_ERROR, 'sweelix.yii1.web.actions');
+		} catch(Exception $e) {
+			Yii::error($e->getMessage(), __METHOD__);
 			throw $e;
 		}
 	}
@@ -60,50 +63,56 @@ class PreviewFile extends \CAction {
 	 * @param string $fileName filename
 	 *
 	 * @return void
-	 * @since  2.0.0
+	 * @since  XXX
 	 */
 	public function generateJson($fileName) {
 		try {
-			\Yii::trace(__METHOD__.'()', 'sweelix.yii1.web.actions');
 			$tempFile = false;
-			$sessionId = \Yii::app()->getRequest()->getParam('key', \Yii::app()->getSession()->getSessionId());
-			$id = \Yii::app()->getRequest()->getParam('id', 'unk');
+			Yii::$app->getSession()->open();
+			$sessionId =  Yii::$app->getRequest()->get('key', Yii::$app->getSession()->getId());
+			$id = Yii::$app->getRequest()->get('id', 'unk');
 
 			if (strncmp($fileName, 'tmp://', 6) === 0) {
 				$tempFile = true;
 				$fileName = str_replace('tmp://', '', $fileName);
-				$targetPath = \Yii::getPathOfAlias(UploadedFile::$targetPath).DIRECTORY_SEPARATOR.$sessionId.DIRECTORY_SEPARATOR.$id;
+				$targetPath = Yii::getAlias(UploadedFile::$targetPath).DIRECTORY_SEPARATOR.$sessionId.DIRECTORY_SEPARATOR.$id;
 			} else {
-				$targetPath = \Yii::getPathOfAlias(\Yii::app()->getRequest()->getParam('targetPathAlias', 'webroot'));
+				$targetPath = Yii::getAlias(Yii::$app->getRequest()->get('targetPathAlias', '@webroot'));
 			}
 			if($tempFile === false) {
-				$replacement = array();
-				if(preg_match_all('/{([^}]+)}/', \Yii::app()->getRequest()->getParam('targetPathAlias', 'webroot'), $matches) > 0) {
+				$replacement = [];
+				if(preg_match_all('/{([^}]+)}/', Yii::$app->getRequest()->get('targetPathAlias', '@webroot'), $matches) > 0) {
 					if(isset($matches[1]) === true) {
 						foreach($matches[1] as $repKey) {
-							$replacement['{'.$repKey.'}'] = \Yii::app()->getRequest()->getParam($repKey, '');
+							$replacement['{'.$repKey.'}'] = Yii::$app->getRequest()->get($repKey, '');
 						}
 						$targetPath = str_replace(array_keys($replacement), array_values($replacement), $targetPath);
 					}
 				}
 			}
 			$file = $targetPath.DIRECTORY_SEPARATOR.$fileName;
-			$response = array('status' => false);
+			$response = ['status' => false];
 			if(is_file($file) === true) {
-				$width = \Yii::app()->getRequest()->getParam('width', $this->width);
-				$height = \Yii::app()->getRequest()->getParam('height', $this->height);
-				$fit = \CPropertyValue::ensureBoolean(\Yii::app()->getRequest()->getParam('fit', $this->fit));
+				$width = Yii::$app->getRequest()->get('width', $this->width);
+				$height = Yii::$app->getRequest()->get('height', $this->height);
+				$fit = Yii::$app->getRequest()->get('fit', $this->fit);
+				if(($fit === 'true') || ($fit === 1) || ($fit === true)) {
+					$fit = true;
+				} else {
+					$fit = false;
+				}
 				$fit = ($fit === true)?'true':'false';
 				$response['status'] = true;
-				$imageInfo = getimagesize($file);
-				if(($imageInfo !== false) && (in_array($imageInfo[2], array(IMAGETYPE_GIF, IMAGETYPE_JPEG, IMAGETYPE_PNG)) === true)) {
+				//TODO: we should remove the bad @
+				$imageInfo = @getimagesize($file);
+				if(($imageInfo !== false) && (in_array($imageInfo[2], [IMAGETYPE_GIF, IMAGETYPE_JPEG, IMAGETYPE_PNG]) === true)) {
 					$response['image'] = true;
 				} else {
 					$response['image'] = false;
 				}
 				if($tempFile === true) {
 					$relativeFile = 'tmp://'.$fileName;
-					$response['url'] = \CHtml::normalizeUrl(array($this->id,
+					$response['url'] = Url::to([$this->id,
 							'mode' => 'raw',
 							'fileName' =>$relativeFile,
 							'key' => $sessionId,
@@ -111,30 +120,28 @@ class PreviewFile extends \CAction {
 							'width' => $width,
 							'height' => $height,
 							'fit' => $fit,
-					));
+					]);
 					$response['path'] = null;
 				} else {
-					$basePath = \Yii::getPathOfAlias('webroot');
+					$basePath = Yii::getAlias('@webroot');
 					$relativeFile = ltrim(str_replace($basePath, '', $file), '/');
-					$response['url'] = \CHtml::normalizeUrl(array($this->id,
+					$response['url'] = Url::to([$this->id,
 							'mode' => 'raw',
 							'fileName' =>$relativeFile,
 							'width' => $width,
 							'height' => $height,
 							'fit' => $fit,
-					));
+					]);
 					$response['path'] = $relativeFile;
 				}
 				$response['name'] = $fileName;
 			}
 
-			if(\Yii::app()->request->isAjaxRequest == true) {
-				$this->getController()->renderJson($response);
-			} else {
-				echo \CJSON::encode($response);
-			}
-		} catch(\Exception $e) {
-			\Yii::log('Error in '.__METHOD__.'():'.$e->getMessage(), \CLogger::LEVEL_ERROR, 'sweelix.yii1.web.actions');
+			Yii::$app->getResponse()->format = Response::FORMAT_JSON;
+			return $response;
+
+		} catch(Exception $e) {
+			Yii::error($e->getMessage(), __METHOD__);
 			throw $e;
 		}
 	}
@@ -145,25 +152,25 @@ class PreviewFile extends \CAction {
 	 * @param string $fileName filename
 	 *
 	 * @return void
-	 * @since  2.0.0
+	 * @since  XXX
 	 */
 	public function generateImage($fileName) {
 		try {
-			\Yii::trace(__METHOD__.'()', 'sweelix.yii1.web.actions');
 			$tempFile = false;
-			$sessionId = \Yii::app()->getRequest()->getParam('key', \Yii::app()->getSession()->getSessionId());
-			$id = \Yii::app()->getRequest()->getParam('id', 'unk');
+			Yii::$app->getSession()->open();
+			$sessionId =  Yii::$app->getRequest()->get('key', Yii::$app->getSession()->getId());
+			$id = Yii::$app->getRequest()->get('id', 'unk');
 			if (strncmp($fileName, 'tmp://', 6) === 0) {
 				$tempFile = true;
 				$fileName = str_replace('tmp://', '', $fileName);
-				$targetPath = \Yii::getPathOfAlias(UploadedFile::$targetPath).DIRECTORY_SEPARATOR.$sessionId.DIRECTORY_SEPARATOR.$id;
+				$targetPath = Yii::getAlias(UploadedFile::$targetPath).DIRECTORY_SEPARATOR.$sessionId.DIRECTORY_SEPARATOR.$id;
 			} else {
-				$targetPath = \Yii::getPathOfAlias(\Yii::app()->getRequest()->getParam('targetPathAlias', 'webroot'));
-				$replacement = array();
-				if(preg_match_all('/{([^}]+)}/', \Yii::app()->getRequest()->getParam('targetPathAlias', 'webroot'), $matches) > 0) {
+				$targetPath = Yii::getAlias(\Yii::app()->getRequest()->get('targetPathAlias', '@webroot'));
+				$replacement = [];
+				if(preg_match_all('/{([^}]+)}/', Yii::app()->getRequest()->get('targetPathAlias', '@webroot'), $matches) > 0) {
 					if(isset($matches[1]) === true) {
 						foreach($matches[1] as $repKey) {
-							$replacement['{'.$repKey.'}'] = \Yii::app()->getRequest()->getParam($repKey, '');
+							$replacement['{'.$repKey.'}'] = \Yii::app()->getRequest()->get($repKey, '');
 						}
 						$targetPath = str_replace(array_keys($replacement), array_values($replacement), $targetPath);
 					}
@@ -171,12 +178,17 @@ class PreviewFile extends \CAction {
 			}
 			$file = $targetPath.DIRECTORY_SEPARATOR.$fileName;
 			if(is_file($file) === true) {
-				$width = \Yii::app()->getRequest()->getParam('width', $this->width);
-				$height = \Yii::app()->getRequest()->getParam('height', $this->height);
-				$fit = \CPropertyValue::ensureBoolean(\Yii::app()->getRequest()->getParam('fit', $this->fit));
-
-				$imageInfo = getimagesize($file);
-				if(($imageInfo !== false) && (in_array($imageInfo[2], array(IMAGETYPE_GIF, IMAGETYPE_JPEG, IMAGETYPE_PNG)) === true)) {
+				$width = Yii::$app->getRequest()->get('width', $this->width);
+				$height = Yii::$app->getRequest()->get('height', $this->height);
+				$fit = Yii::$app->getRequest()->get('fit', $this->fit);
+				if(($fit === 'true') || ($fit === 1) || ($fit === true)) {
+					$fit = true;
+				} else {
+					$fit = false;
+				}
+				//TODO: we should remove the bad @
+				$imageInfo = @getimagesize($file);
+				if(($imageInfo !== false) && (in_array($imageInfo[2], [IMAGETYPE_GIF, IMAGETYPE_JPEG, IMAGETYPE_PNG]) === true)) {
 					if($tempFile === false) {
 						$image = Image::create($file)->resize($width, $height)->setFit($fit);
 						$imageContentType = $image->getContentType();
@@ -189,7 +201,8 @@ class PreviewFile extends \CAction {
 				} else {
 					$ext = strtolower(pathinfo($file,PATHINFO_EXTENSION));
 					//TODO:handle default image
-					$imageName = dirname(__DIR__).DIRECTORY_SEPARATOR.'icons'.DIRECTORY_SEPARATOR.$ext.'.png';
+					$imageName = Yii::getAlias('@sweelix/yii2/plupload/icons').DIRECTORY_SEPARATOR.$ext.'.png';
+					// $imageName = dirname(__DIR__).DIRECTORY_SEPARATOR.'icons'.DIRECTORY_SEPARATOR.$ext.'.png';
 					if(file_exists($imageName)) {
 						$image = Image::create($imageName)->resize($width, $height)->setFit($fit);
 						$imageContentType = $image->getContentType();
@@ -197,12 +210,10 @@ class PreviewFile extends \CAction {
 					}
 				}
 			}
-			header('Content-type: '.$imageContentType);
-			header('Content-Disposition: inline; filename="'.$fileName.'";');
-			echo $imageData;
+			return Yii::$app->getResponse()->sendContentAsFile($imageData, $fileName, $imageContentType);
 		}
-		catch(\Exception $e) {
-			\Yii::log('Error in '.__METHOD__.'():'.$e->getMessage(), \CLogger::LEVEL_ERROR, 'sweelix.yii1.web.actions');
+		catch(Exception $e) {
+			Yii::error($e->getMessage(), __METHOD__);
 			throw $e;
 		}
 	}

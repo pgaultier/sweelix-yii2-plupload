@@ -109,7 +109,7 @@ trait Plupload {
 	protected static function prepareAsyncInput(&$options) {
 		Yii::$app->getSession()->open();
 		$config = [
-			'runtimes' => 'html5, html4, flash', // default to html5 / html4
+			'runtimes' => 'html5, html4, flash', // default to html5 / html4 / flash
 			// 'dropElement' => $htmlOptions['id'].'_zone',
 			// 'dropText' => \Yii::t('sweelix', 'Drop files here'),
 			'ui' => false,
@@ -176,8 +176,8 @@ trait Plupload {
 		}
 		if((strpos($config['runtimes'], 'flash') !== false) || (strpos($config['runtimes'], 'silverlight') !== false)){
 			$pluploadAssetBundle = Yii::$app->getAssetManager()->getBundle(PluploadAsset::className());
-		 	$config['flash_swf_url'] = $pluploadAssetBundle->baseUrl.'/Moxie.swf';
-		 	$config['silverlight_xap_url'] = $pluploadAssetBundle->baseUrl.'/Moxie.xap';
+		 	$config['flashSwfUrl'] = $pluploadAssetBundle->baseUrl.'/Moxie.swf';
+		 	$config['silverlightXapUrl'] = $pluploadAssetBundle->baseUrl.'/Moxie.xap';
  		}
 		return $config;
 	}

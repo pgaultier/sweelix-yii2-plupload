@@ -7,14 +7,19 @@
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   3.0.1
+ * @version   XXX
  * @link      http://www.sweelix.net
  * @category  actions
- * @package   sweelix.yii1.web.actions
+ * @package   sweelix.yii2.plupload.actions
  */
 
-namespace sweelix\yii1\web\actions;
-use sweelix\yii1\web\UploadedFile;
+namespace sweelix\yii2\plupload\actions;
+use sweelix\yii2\plupload\components\UploadedFile;
+use yii\web\Response;
+use yii\base\Action;
+use Yii;
+use Exception;
+
 
 /**
  * This UploadFile handle the xhr /swfupload process
@@ -22,13 +27,13 @@ use sweelix\yii1\web\UploadedFile;
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   3.0.1
+ * @version   XXX
  * @link      http://www.sweelix.net
  * @category  actions
- * @package   sweelix.yii1.web.actions
- * @since     1.1
+ * @package   sweelix.yii2.plupload.actions
+ * @since     XXX
  */
-class UploadFile extends \CAction {
+class UploadFile extends Action {
 	/**
 	 * @var string define locale used for transliteration
 	 */
@@ -37,14 +42,16 @@ class UploadFile extends \CAction {
 	 * Run the action and perform the upload process
 	 *
 	 * @return void
-	 * @since  1.1.0
+	 * @since  XXX
 	 */
 	public function run() {
 		try {
-			\Yii::trace(__METHOD__.'()', 'sweelix.yii1.web.actions');
-			$chunk = \Yii::app()->getRequest()->getParam('chunk', 0);
-			$chunks = \Yii::app()->getRequest()->getParam('chunks', 0);
-			$fileName = \Yii::app()->getRequest()->getParam('name', '');
+			Yii::$app->getSession()->open();
+			$sessionId =  Yii::$app->getRequest()->get('key', Yii::$app->getSession()->getId());
+			$chunk = Yii::$app->getRequest()->get('chunk', 0);
+			$chunks =  Yii::$app->getRequest()->get('chunks', 0);
+			$fileName =  Yii::$app->getRequest()->get('name', '');
+			$id = Yii::$app->getRequest()->get('id', 'unk');
 
 			setlocale(LC_ALL, $this->locale);
 			$fileName = iconv('utf-8','ASCII//TRANSLIT//IGNORE', $fileName);
@@ -53,9 +60,7 @@ class UploadFile extends \CAction {
 			$fileName = strtolower($fileName);
 			$fileName = preg_replace('/([^a-z0-9\._\-])+/iu', '-', $fileName);
 
-			$sessionId = \Yii::app()->getRequest()->getParam('key', \Yii::app()->getSession()->getSessionId());
-			$id = \Yii::app()->getRequest()->getParam('id', 'unk');
-			$targetPath = \Yii::getPathOfAlias(UploadedFile::$targetPath).DIRECTORY_SEPARATOR.$sessionId.DIRECTORY_SEPARATOR.$id;
+			$targetPath = Yii::getAlias(UploadedFile::$targetPath).DIRECTORY_SEPARATOR.$sessionId.DIRECTORY_SEPARATOR.$id;
 
 			if(is_dir($targetPath) == false) {
 				mkdir($targetPath, 0777, true);
@@ -124,14 +129,11 @@ class UploadFile extends \CAction {
 					$response['status'] = false;
 				}
 			}
-			if(\Yii::app()->request->isAjaxRequest == true) {
-				$this->getController()->renderJson($response);
-			} else {
-				echo \CJSON::encode($response);
-			}
+			Yii::$app->getResponse()->format = Response::FORMAT_JSON;
+			return $response;
 		}
-		catch(\Exception $e) {
-			\Yii::log('Error in '.__METHOD__.'():'.$e->getMessage(), \CLogger::LEVEL_ERROR, 'sweelix.yii1.web.actions');
+		catch(Exception $e) {
+			Yii::error($e->getMessage(), __METHOD__);
 			throw $e;
 		}
 	}

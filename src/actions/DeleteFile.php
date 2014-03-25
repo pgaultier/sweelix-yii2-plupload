@@ -16,6 +16,7 @@
 namespace sweelix\yii2\plupload\actions;
 use sweelix\yii2\plupload\components\UploadedFile;
 use yii\web\Response;
+use yii\base\Action;
 use Yii;
 use Exception;
 
@@ -31,7 +32,7 @@ use Exception;
  * @package   sweelix.yii2.plupload.actions
  * @since     XXX
  */
-class DeleteFile extends \CAction {
+class DeleteFile extends Action {
 	/**
 	 * Run the action and perform the delete process
 	 *
@@ -40,13 +41,14 @@ class DeleteFile extends \CAction {
 	 */
 	public function run() {
 		try {
-			$sessionId = Yii::$app->getSession()->getSessionId();
-			$fileName = Yii::$app->getRequest()->getParam('name', '');
+			Yii::$app->getSession()->open();
+			$sessionId = Yii::$app->getSession()->getId();
+			$fileName = Yii::$app->getRequest()->get('name', '');
 			if (strncmp($fileName, 'tmp://', 6) === 0) {
 				$fileName = str_replace('tmp://', '', $fileName);
 			}
 
-			$id = Yii::$app->getRequest()->getParam('id', 'unk');
+			$id = Yii::$app->getRequest()->get('id', 'unk');
 			$targetFile = Yii::getAlias(UploadedFile::$targetPath).DIRECTORY_SEPARATOR.$sessionId.DIRECTORY_SEPARATOR.$id.DIRECTORY_SEPARATOR.$fileName;
 			$response = [
 				'fileName' => $fileName,
