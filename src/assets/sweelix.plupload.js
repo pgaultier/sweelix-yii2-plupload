@@ -174,6 +174,9 @@
 			'required_features':(!!config.requiredFeatures)?config.requiredFeatures:null,
 			'headers':(!!config.headers)?config.headers:null
 		};
+		if(baseConfig['container'] == null) {
+			delete baseConfig['container'];
+		}
 		if(!!config.filters) {
 			baseConfig['filters'] = config.filters;
 		}
