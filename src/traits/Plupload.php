@@ -20,6 +20,7 @@ use yii\base\InvalidConfigException;
 use yii\helpers\ArrayHelper;
 use yii\helpers\Url;
 use yii\helpers\Json;
+use yii\web\Request;
 use Yii;
 
 /*
@@ -109,7 +110,7 @@ trait Plupload {
 	protected static function prepareAsyncInput(&$options) {
 		Yii::$app->getSession()->open();
 		$config = [
-			'runtimes' => 'html5, html4, flash', // default to html5 / html4 / flash
+			'runtimes' => 'html5, html4', // default to html5 / html4 / flash
 			// 'dropElement' => $htmlOptions['id'].'_zone',
 			// 'dropText' => \Yii::t('sweelix', 'Drop files here'),
 			'ui' => false,
@@ -125,6 +126,9 @@ trait Plupload {
 				'key' => Yii::$app->getSession()->getId(),
 			],
 			'urlPreview' => null,
+			'headers' => [
+				Request::CSRF_HEADER => Yii::$app->getRequest()->getCsrfToken()
+			],
 		];
 
 		if(isset($options['config']) == true) {

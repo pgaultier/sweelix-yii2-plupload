@@ -181,7 +181,14 @@
 			baseConfig['filters'] = config.filters;
 		}
 		var uploadedFiles = (!!config.uploadedFiles)?config.uploadedFiles:null;
-		jQuery.extend(baseConfig, {'headers':{'X-Requested-With':'XMLHttpRequest'}});
+		if(baseConfig['headers'] == null) {
+			baseConfig['headers']= {'X-Requested-With': 'XMLHttpRequest'};
+		} else {
+			if(!!baseConfig['headers']['X-Requested-With'] == false) {
+				baseConfig['headers']['X-Requested-With'] = 'XMLHttpRequest';
+			}
+		}
+		//jQuery.extend(baseConfig, {'headers':{'X-Requested-With':'XMLHttpRequest'}});
 
 		return this.each(function () {
 			// prepare element : button + hidden container
