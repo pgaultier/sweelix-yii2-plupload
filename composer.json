@@ -9,6 +9,7 @@
 		"email" : "pgaultier@sweelix.net"
 	} ],
 	"require" : {
+		"sweelix/yii2-image":"*"
 	},
 	"autoload" : {
 		"psr-4" : {
