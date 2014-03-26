@@ -50,11 +50,11 @@ class UploadFile extends Action {
 			$sessionId =  Yii::$app->getRequest()->get('key', Yii::$app->getSession()->getId());
 			$chunk = Yii::$app->getRequest()->get('chunk', 0);
 			$chunks =  Yii::$app->getRequest()->get('chunks', 0);
-			$fileName =  Yii::$app->getRequest()->get('name', '');
+			$originalFileName =  Yii::$app->getRequest()->get('name', '');
 			$id = Yii::$app->getRequest()->get('id', 'unk');
 
 			setlocale(LC_ALL, $this->locale);
-			$fileName = iconv('utf-8','ASCII//TRANSLIT//IGNORE', $fileName);
+			$fileName = iconv('utf-8','ASCII//TRANSLIT//IGNORE', $originalFileName);
 			setlocale(LC_ALL, 0);
 
 			$fileName = strtolower($fileName);
@@ -74,7 +74,14 @@ class UploadFile extends Action {
 				}
 				$fileName = $fileNameInfo['filename'] . '_' . $count . '.' . $fileNameInfo['extension'];
 			}
-			$response = array('fileName' => 'tmp://'.$fileName, 'status' => true, 'fileSize' => null);
+
+			$pseudoFileResponse = [
+				'name' => $originalFileName,
+                'tmp_name' => $fileName,
+                'type' => 'application/octet-stream',
+                'size' => 0,
+                'error' => UPLOAD_ERR_OK,
+			];
 			// Look for the content type header
 			$contentType = null;
 			if (isset($_SERVER["HTTP_CONTENT_TYPE"])) {
@@ -95,17 +102,18 @@ class UploadFile extends Action {
 								fwrite($out, $buff);
 							}
 						} else {
-							$response['status'] = false;
+							$response['error'] = UPLOAD_ERR_PARTIAL;
 						}
 						fclose($in);
 						fclose($out);
 						@unlink($_FILES['file']['tmp_name']);
-						$response['fileSize'] = filesize($targetPath . DIRECTORY_SEPARATOR . $fileName);
+						$pseudoFileResponse['size'] = filesize($targetPath . DIRECTORY_SEPARATOR . $fileName);
+						$pseudoFileResponse['type'] = $_FILES['file']['type'];
 					} else {
-						$response['status'] = false;
+						$pseudoFileResponse['error'] = UPLOAD_ERR_CANT_WRITE;
 					}
 				} else {
-					$response['status'] = false;
+					$pseudoFileResponse['error'] = UPLOAD_ERR_NO_FILE;
 
 				}
 			} else {
@@ -118,18 +126,19 @@ class UploadFile extends Action {
 						while (($buff = fread($in, 4096))) {
 							fwrite($out, $buff);
 						}
-						$response['fileSize'] = filesize($targetPath . DIRECTORY_SEPARATOR . $fileName);
+						$pseudoFileResponse['size'] = filesize($targetPath . DIRECTORY_SEPARATOR . $fileName);
 					} else {
-						$response['status'] = false;
+						$pseudoFileResponse['error'] = UPLOAD_ERR_PARTIAL;
 					}
 					fclose($in);
 					fclose($out);
 				} else {
-					$response['status'] = false;
+					$pseudoFileResponse['error'] = UPLOAD_ERR_CANT_WRITE;
 				}
 			}
 			Yii::$app->getResponse()->format = Response::FORMAT_JSON;
-			return $response;
+			return $pseudoFileResponse;
+			// return Yii::$app->getResponse();
 		}
 		catch(Exception $e) {
 			Yii::error($e->getMessage(), __METHOD__);

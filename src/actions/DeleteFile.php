@@ -43,25 +43,26 @@ class DeleteFile extends Action {
 		try {
 			Yii::$app->getSession()->open();
 			$sessionId = Yii::$app->getSession()->getId();
-			$fileName = Yii::$app->getRequest()->get('name', '');
-			if (strncmp($fileName, 'tmp://', 6) === 0) {
-				$fileName = str_replace('tmp://', '', $fileName);
-			}
+			$fileName = Yii::$app->getRequest()->get('tmp_name', '');
+			$name = Yii::$app->getRequest()->get('name', '');
 
 			$id = Yii::$app->getRequest()->get('id', 'unk');
 			$targetFile = Yii::getAlias(UploadedFile::$targetPath).DIRECTORY_SEPARATOR.$sessionId.DIRECTORY_SEPARATOR.$id.DIRECTORY_SEPARATOR.$fileName;
 			$response = [
-				'fileName' => $fileName,
-				'status' => false,
-				'fileSize' => null,
+				'name' => $name,
+                'tmp_name' => $fileName,
+                'type' => null,
+                'size' => null,
+                'error' => UPLOAD_ERR_OK,
 			];
 			if((file_exists($targetFile) == true) && (is_file($targetFile) == true)) {
 				unlink($targetFile);
-				$response['status'] = true;
+			} else {
+				$response['error'] = UPLOAD_ERR_NO_FILE;
 			}
 			Yii::$app->getResponse()->format = Response::FORMAT_JSON;
 			Yii::$app->getResponse()->data = $response;
-			return Yii::$app->getResponse()->send();
+			return Yii::$app->getResponse();
 		}
 		catch(Exception $e) {
 			Yii::error($e->getMessage(), __METHOD__);

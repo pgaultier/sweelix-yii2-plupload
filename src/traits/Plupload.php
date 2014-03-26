@@ -16,6 +16,7 @@
 namespace sweelix\yii2\plupload\traits;
 use sweelix\yii2\plupload\components\UploadedFile;
 use sweelix\yii2\plupload\PluploadAsset;
+use sweelix\yii2\plupload\PluploadUiAsset;
 use yii\base\InvalidConfigException;
 use yii\helpers\ArrayHelper;
 use yii\helpers\Url;
@@ -116,16 +117,20 @@ trait Plupload {
 			'ui' => false,
 			'multiSelection' => false,
 			'url' => [
-				'asyncUpload',
+				'async-upload',
 				'id'=>$options['id'],
 				'key' => Yii::$app->getSession()->getId(),
 			],
 			'urlDelete' => [
-				'asyncDelete',
+				'async-delete',
 				'id'=>$options['id'],
 				'key' => Yii::$app->getSession()->getId(),
 			],
-			'urlPreview' => null,
+			'urlPreview' => [
+				'async-preview',
+				'id'=>$options['id'],
+				'key' => Yii::$app->getSession()->getId(),
+			],
 			'headers' => [
 				Request::CSRF_HEADER => Yii::$app->getRequest()->getCsrfToken()
 			],
@@ -172,14 +177,15 @@ trait Plupload {
 		if($config['multiSelection'] == true) {
 			$config['realName'] .= '[]';
 		}
-
-		$view = Yii::$app->getView();
-		PluploadAsset::register($view);
-		if($config['ui'] === false) {
-
+		if($config['ui'] === true) {
+			$view = Yii::$app->getView();
+			PluploadUiAsset::register($view);
+		} else {
+			$view = Yii::$app->getView();
+			PluploadAsset::register($view);
 		}
+		$pluploadAssetBundle = Yii::$app->getAssetManager()->getBundle(PluploadAsset::className());
 		if((strpos($config['runtimes'], 'flash') !== false) || (strpos($config['runtimes'], 'silverlight') !== false)){
-			$pluploadAssetBundle = Yii::$app->getAssetManager()->getBundle(PluploadAsset::className());
 		 	$config['flashSwfUrl'] = $pluploadAssetBundle->baseUrl.'/Moxie.swf';
 		 	$config['silverlightXapUrl'] = $pluploadAssetBundle->baseUrl.'/Moxie.xap';
  		}

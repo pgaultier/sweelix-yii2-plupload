@@ -65,4 +65,80 @@ use yii\web\UploadedFile as BaseUploadedFile;
  */
 class UploadedFile extends BaseUploadedFile {
 	public static $targetPath='@app/runtime/upload';
+	protected static $_files;
+
+	/**
+	 * Creates UploadedFile instances from $_FILE.
+	 * @return array the UploadedFile instances
+	 */
+	protected static function loadFiles() {
+		if (self::$_files === null) {
+			self::$_files = [];
+			if (isset($_POST['_plupload']) && is_array($_POST['_plupload'])) {
+				foreach ($_POST['_plupload'] as $class => $info) {
+					self::loadFilesRecursive($class, $info['name'], $info['tmp_name'], $info['type'], $info['size'], $info['error']);
+				}
+			}
+		}
+		return self::$_files;
+	}
+
+	/**
+	 * Cleans up the loaded UploadedFile instances.
+	 * This method is mainly used by test scripts to set up a fixture.
+	 */
+	public static function reset() {
+		self::$_files = null;
+	}
+
+	/**
+	 * Creates UploadedFile instances from $_FILE recursively.
+	 * @param string $key key for identifying uploaded file: class name and sub-array indexes
+	 * @param mixed $names file names provided by PHP
+	 * @param mixed $tempNames temporary file names provided by PHP
+	 * @param mixed $types file types provided by PHP
+	 * @param mixed $sizes file sizes provided by PHP
+	 * @param mixed $errors uploading issues provided by PHP
+	 */
+	protected static function loadFilesRecursive($key, $names, $tempNames, $types, $sizes, $errors) {
+		if (is_array($names)) {
+			foreach ($names as $i => $name) {
+				self::loadFilesRecursive($key . '[' . $i . ']', $name, $tempNames[$i], $types[$i], $sizes[$i], $errors[$i]);
+			}
+		} else {
+			self::$_files[$key] = new static([
+				'name' => $names,
+				'tempName' => $tempNames,
+				'type' => $types,
+				'size' => $sizes,
+				'error' => $errors,
+			]);
+		}
+	}
+	/**
+	 * Saves the uploaded file.
+	 * Note that this method uses php's move_uploaded_file() method. If the target file `$file`
+	 * already exists, it will be overwritten.
+	 *
+	 * @param string  $file           the file path used to save the uploaded file
+	 * @param boolean $deleteTempFile whether to delete the temporary file after saving.
+	 *
+	 * @return boolean true whether the file is saved successfully
+	 * @since  XXX
+	 */
+	public function saveAs($file, $deleteTempFile = true) {
+		$result = false;
+		if ($this->error == UPLOAD_ERR_OK) {
+			$originalFile = Yii::getAlias(self::$targetPath).DIRECTORY_SEPARATOR.$this->tempName;
+			if(file_exists($originalFile) === true) {
+				if ($deleteTempFile) {
+					$result = rename($originalFile , $file);
+				} else {
+					$result = copy($originalFile , $file);
+				}
+			}
+		}
+		return $result;
+	}
+
 }

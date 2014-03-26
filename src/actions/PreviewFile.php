@@ -15,9 +15,11 @@
 
 namespace sweelix\yii2\plupload\actions;
 use sweelix\yii2\plupload\components\UploadedFile;
+use sweelix\yii2\image\Image;
 use yii\web\Response;
 use yii\base\Action;
 use yii\helpers\Url;
+use yii\helpers\StringHelper;
 use Yii;
 use Exception;
 
@@ -44,12 +46,12 @@ class PreviewFile extends Action {
 	 * @return void
 	 * @since  XXX
 	 */
-	public function run($fileName, $mode=null) {
+	public function run($name, $tmp_name=null, $mode=null) {
 		try {
 			if($mode == 'json') {
-				$this->generateJson($fileName);
+				$this->generateJson($name, $tmp_name);
 			} elseif($mode == 'raw') {
-				$this->generateImage($fileName);
+				$this->generateImage($name, $tmp_name);
 			}
 		} catch(Exception $e) {
 			Yii::error($e->getMessage(), __METHOD__);
@@ -65,13 +67,22 @@ class PreviewFile extends Action {
 	 * @return void
 	 * @since  XXX
 	 */
-	public function generateJson($fileName) {
+	public function generateJson($name, $tempName=null) {
 		try {
 			$tempFile = false;
 			Yii::$app->getSession()->open();
 			$sessionId =  Yii::$app->getRequest()->get('key', Yii::$app->getSession()->getId());
 			$id = Yii::$app->getRequest()->get('id', 'unk');
 
+			if(empty($tempName) === false) {
+				$tempFile = true;
+				$fileName = $tempName;
+				$targetPath = Yii::getAlias(UploadedFile::$targetPath).DIRECTORY_SEPARATOR.$sessionId.DIRECTORY_SEPARATOR.$id;
+			} else {
+				$fileName = $name;
+				$targetPath = Yii::getAlias(Yii::$app->getRequest()->get('targetPathAlias', '@webroot'));
+			}
+			/*
 			if (strncmp($fileName, 'tmp://', 6) === 0) {
 				$tempFile = true;
 				$fileName = str_replace('tmp://', '', $fileName);
@@ -79,6 +90,7 @@ class PreviewFile extends Action {
 			} else {
 				$targetPath = Yii::getAlias(Yii::$app->getRequest()->get('targetPathAlias', '@webroot'));
 			}
+			*/
 			if($tempFile === false) {
 				$replacement = [];
 				if(preg_match_all('/{([^}]+)}/', Yii::$app->getRequest()->get('targetPathAlias', '@webroot'), $matches) > 0) {
@@ -93,6 +105,7 @@ class PreviewFile extends Action {
 			$file = $targetPath.DIRECTORY_SEPARATOR.$fileName;
 			$response = ['status' => false];
 			if(is_file($file) === true) {
+
 				$width = Yii::$app->getRequest()->get('width', $this->width);
 				$height = Yii::$app->getRequest()->get('height', $this->height);
 				$fit = Yii::$app->getRequest()->get('fit', $this->fit);
@@ -111,10 +124,10 @@ class PreviewFile extends Action {
 					$response['image'] = false;
 				}
 				if($tempFile === true) {
-					$relativeFile = 'tmp://'.$fileName;
 					$response['url'] = Url::to([$this->id,
 							'mode' => 'raw',
-							'fileName' =>$relativeFile,
+							'name' => $name,
+							'tmp_name' => $tempName,
 							'key' => $sessionId,
 							'id' => $id,
 							'width' => $width,
@@ -127,7 +140,8 @@ class PreviewFile extends Action {
 					$relativeFile = ltrim(str_replace($basePath, '', $file), '/');
 					$response['url'] = Url::to([$this->id,
 							'mode' => 'raw',
-							'fileName' =>$relativeFile,
+							'name' => $name,
+							'tmp_name' => $tempName,
 							'width' => $width,
 							'height' => $height,
 							'fit' => $fit,
@@ -136,10 +150,9 @@ class PreviewFile extends Action {
 				}
 				$response['name'] = $fileName;
 			}
-
 			Yii::$app->getResponse()->format = Response::FORMAT_JSON;
-			return $response;
-
+			Yii::$app->getResponse()->data = $response;
+			return Yii::$app->getResponse();
 		} catch(Exception $e) {
 			Yii::error($e->getMessage(), __METHOD__);
 			throw $e;
@@ -154,23 +167,27 @@ class PreviewFile extends Action {
 	 * @return void
 	 * @since  XXX
 	 */
-	public function generateImage($fileName) {
+	public function generateImage($name, $tempName=null) {
 		try {
 			$tempFile = false;
 			Yii::$app->getSession()->open();
 			$sessionId =  Yii::$app->getRequest()->get('key', Yii::$app->getSession()->getId());
 			$id = Yii::$app->getRequest()->get('id', 'unk');
-			if (strncmp($fileName, 'tmp://', 6) === 0) {
+
+			if(empty($tempName) === false) {
 				$tempFile = true;
-				$fileName = str_replace('tmp://', '', $fileName);
+				$fileName = $tempName;
 				$targetPath = Yii::getAlias(UploadedFile::$targetPath).DIRECTORY_SEPARATOR.$sessionId.DIRECTORY_SEPARATOR.$id;
 			} else {
-				$targetPath = Yii::getAlias(\Yii::app()->getRequest()->get('targetPathAlias', '@webroot'));
+				$fileName = $name;
+				$targetPath = Yii::getAlias(Yii::$app->getRequest()->get('targetPathAlias', '@webroot'));
+			}
+			if($tempFile === false) {
 				$replacement = [];
-				if(preg_match_all('/{([^}]+)}/', Yii::app()->getRequest()->get('targetPathAlias', '@webroot'), $matches) > 0) {
+				if(preg_match_all('/{([^}]+)}/', Yii::$app->getRequest()->get('targetPathAlias', '@webroot'), $matches) > 0) {
 					if(isset($matches[1]) === true) {
 						foreach($matches[1] as $repKey) {
-							$replacement['{'.$repKey.'}'] = \Yii::app()->getRequest()->get($repKey, '');
+							$replacement['{'.$repKey.'}'] = Yii::$app->getRequest()->get($repKey, '');
 						}
 						$targetPath = str_replace(array_keys($replacement), array_values($replacement), $targetPath);
 					}
@@ -194,7 +211,13 @@ class PreviewFile extends Action {
 						$imageContentType = $image->getContentType();
 						$imageData = file_get_contents($image->getUrl(true));
 					} else {
+						try {
 						$image = Image::create($file)->resize($width, $height)->setFit($fit);
+						} catch(Exception $e) {
+							var_dump($e->getMessage());
+							die();
+						}
+
 						$imageContentType = $image->getContentType();
 						$imageData = $image->liveRender();
 					}
@@ -202,15 +225,25 @@ class PreviewFile extends Action {
 					$ext = strtolower(pathinfo($file,PATHINFO_EXTENSION));
 					//TODO:handle default image
 					$imageName = Yii::getAlias('@sweelix/yii2/plupload/icons').DIRECTORY_SEPARATOR.$ext.'.png';
-					// $imageName = dirname(__DIR__).DIRECTORY_SEPARATOR.'icons'.DIRECTORY_SEPARATOR.$ext.'.png';
-					if(file_exists($imageName)) {
-						$image = Image::create($imageName)->resize($width, $height)->setFit($fit);
-						$imageContentType = $image->getContentType();
-						$imageData = file_get_contents($image->getUrl(true));
+					if(file_exists($imageName) === false) {
+						$imageName = Yii::getAlias('@sweelix/yii2/plupload/icons').DIRECTORY_SEPARATOR.'unk.png';
 					}
+					$image = Image::create($imageName)->resize($width, $height)->setFit($fit);
+					$imageContentType = $image->getContentType();
+					$imageData = file_get_contents($image->getUrl(true));
 				}
 			}
-			return Yii::$app->getResponse()->sendContentAsFile($imageData, $fileName, $imageContentType);
+			$response = Yii::$app->getResponse();
+			$headers = $response->getHeaders();
+			$headers->setDefault('Pragma', 'public')
+					->setDefault('Expires', '0')
+					->setDefault('Content-Type', $imageContentType)
+					->setDefault('Cache-Control', 'must-revalidate, post-check=0, pre-check=0')
+					->setDefault('Content-Transfer-Encoding', 'binary')
+					->setDefault('Content-Length', StringHelper::byteLength($imageData));
+			$response->format = Response::FORMAT_RAW;
+			$response->content = $imageData;
+			return $response;
 		}
 		catch(Exception $e) {
 			Yii::error($e->getMessage(), __METHOD__);
