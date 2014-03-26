@@ -68,7 +68,7 @@
 			}
 
 		}
-		this.AsyncDelete = function(file, name){
+		this.AsyncDelete = function(file){
 
 		}
 		this.FilesRemoved = function (up, files) {
@@ -92,8 +92,8 @@
 		};
 		this.FileUploaded = function (up, file, response) {
 			var json = jQuery.parseJSON(response.response);
-			var name = json.fileName;
-			if(json.status == true) {
+			var name = json.tmp_name;
+			if(json.error == 0) {
 				jQuery('#'+getContainerId()+' #'+file.id+' div.progress').css({width:'100%'});
 				var remove = jQuery('<a href="#" class="close">X</a>');
 				remove.one('click', function(evt){
@@ -105,7 +105,8 @@
 				jQuery.ajax({
 					'url' : getPreviewUrl(),
 					'data' : {
-						'fileName' : name,
+						'tmp_name' : json.tmp_name,
+						'name' : json.name,
 						'mode' : 'json'
 					}
 				}).done(function(data){

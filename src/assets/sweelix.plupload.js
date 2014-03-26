@@ -72,7 +72,7 @@
 			}
 
 		}
-		this.AsyncDelete = function(file, name){
+		this.AsyncDelete = function(file){
 
 		}
 		this.FilesRemoved = function (up, files) {
@@ -90,12 +90,13 @@
 		}
 		this.FilesAdded = function (up, files) {
 			jQuery.each(files,  function(i, file){
-				jQuery('#'+getContainerId()).append('<li id="'+ file.id + '" class="fileContainer" title="'+file.name+'">' + cutName(file.name.replace('tmp://', '')) + ' ('+ formatSize(file.size) +')<div class="progressBar"><div class="progress"></div></div></li>');
+				jQuery('#'+getContainerId()).append('<li id="'+ file.id + '" class="fileContainer" title="'+file.name+'">' + cutName(file.name) + ' ('+ formatSize(file.size) +')<div class="progressBar"><div class="progress"></div></div></li>');
 			});
 			// up.refresh();
 		};
 		this.FileUploaded = function (up, file, response) {
-			var json = jQuery.parseJSON(response.response);
+			// var json = jQuery.parseJSON(response.response);
+			var json = response.response;
 			var name = json.fileName;
 			if(json.status == true) {
 				jQuery('#'+getContainerId()+' #'+file.id+' div.progress').css({width:'100%'});
@@ -139,17 +140,34 @@
 
 (function(jQuery){
 
-	function createHiddenField(up, json, file, hiddenId, config) {
-		if(json.status == true) {
+	function createHiddenField(up, file, hiddenId, config) {
+		if(file.extendedData.error == 0) {
 			jQuery('.sweeploadEmpty').remove();
 			if(up.getMultiSelection() == false) {
-				jQuery('#'+hiddenId+' input[type=hidden]').each(function(idx, el){
+				jQuery('#'+hiddenId+' div.file-block').each(function(idx, el){
 					var fileId = jQuery(el).attr('id');
 					fileId = fileId.substring(1);
-					up.asyncDelete(up.getFile(fileId), jQuery(el).val());
+					up.asyncDelete(up.getFile(fileId), jQuery(el).find('input[type=hidden]:first').val());
 				});
+				var el = jQuery('<div class="file-block" id="h'+file.id+'"></div>');
+				el.append('<input type="hidden" name="_plupload['+config.realName+'][name]" value="'+file.extendedData['name']+'" />');
+				el.append('<input type="hidden" name="_plupload['+config.realName+'][tmp_name]" value="'+file.extendedData['tmp_name']+'" />');
+				el.append('<input type="hidden" name="_plupload['+config.realName+'][type]" value="'+file.extendedData['type']+'" />');
+				el.append('<input type="hidden" name="_plupload['+config.realName+'][size]" value="'+file.extendedData['size']+'" />');
+				el.append('<input type="hidden" name="_plupload['+config.realName+'][error]" value="'+file.extendedData['error']+'" />');
+				jQuery('#'+hiddenId).append(el);
+			} else {
+				var el = jQuery('<div class="file-block" id="h'+file.id+'"></div>');
+				var nbFile = jQuery('#'+hiddenId+' div.file-block').length;
+				var fieldName = config.realName;
+				fieldName = fieldName.replace(/\[[0-9]*\]/, '');
+				el.append('<input type="hidden" name="_plupload['+fieldName+'][name]['+nbFile+']" value="'+file.extendedData['name']+'" />');
+				el.append('<input type="hidden" name="_plupload['+fieldName+'][tmp_name]['+nbFile+']" value="'+file.extendedData['tmp_name']+'" />');
+				el.append('<input type="hidden" name="_plupload['+fieldName+'][type]['+nbFile+']" value="'+file.extendedData['type']+'" />');
+				el.append('<input type="hidden" name="_plupload['+fieldName+'][size]['+nbFile+']" value="'+file.extendedData['size']+'" />');
+				el.append('<input type="hidden" name="_plupload['+fieldName+'][error]['+nbFile+']" value="'+file.extendedData['error']+'" />');
+				jQuery('#'+hiddenId).append(el);
 			}
-			jQuery('#'+hiddenId).append('<input type="hidden" id="h'+file.id+'" name="'+config.realName+'" value="'+json.fileName+'" />')
 		}
 	}
 
@@ -230,14 +248,14 @@
 
 			uploader['formatSize'] = plupload.formatSize;
 
-			uploader['asyncDelete'] = function(file, uploadedName){
+			uploader['asyncDelete'] = function(file){
 				if(uploader.getDeleteUrl() != null) {
 					jQuery.ajax({
 						'url' : uploader.getDeleteUrl(),
-						'data' : {'name':uploadedName},
+						'data' : file.extendedData,
 					}).done(function(data, textStatus, jqXHR){
 						if(('AsyncDelete' in eventsHandler) && (typeof(eventsHandler.AsyncDelete) == 'function')) {
-							eventsHandler.AsyncDelete(file, uploadedName);
+							eventsHandler.AsyncDelete(file);
 						}
 					}).always(function() {
 						uploader.removeFile(file);
@@ -267,21 +285,19 @@
 
 			uploader.bind('FileUploaded', function(up, file, response) {
 				var json = jQuery.parseJSON( response.response );
+				file.extendedData = json;
 				// for each uploaded file create the support hidden field
-				createHiddenField(uploader, json, file, hiddenId, config);
+				createHiddenField(uploader, file, hiddenId, config);
 			});
 
 			uploader.bind('FilesRemoved', function(up, files) {
 				jQuery.each(files,  function(i, file){
 					if(jQuery('#h'+file.id).length > 0) {
-						var filename = jQuery('#h'+file.id).val();
-						if(filename.search(/tmp:\/\//) == 0) {
-							// we should handle delete only for temp files
-							uploader.asyncDelete(file, filename);
-						}
+						// we should handle delete only for temp files
+						uploader.asyncDelete(file);
 						jQuery('#h'+file.id).remove();
 					}
-					if(jQuery('#'+hiddenId+' input[type=hidden]').length == 0) {
+					if(jQuery('#'+hiddenId+' div.file-block').length == 0) {
 						jQuery('#'+hiddenId).append('<input type="hidden" class="sweeploadEmpty" name="'+config.realName+'" value="" />');
 					}
 
@@ -292,6 +308,7 @@
 				// if we have files to show, we should present them as uploaded
 				var jsFiles = [];
 				jQuery.each(uploadedFiles, function(idx, file) {
+					//TODO: add missing properties
 					var jsFile = new plupload.File(plupload.guid(), file.fileName, file.fileSize);
 					jsFile.status = plupload.DONE;
 					jsFile.percent = 100;
@@ -300,7 +317,18 @@
 				uploader.trigger('FilesAdded', jsFiles);
 
 				jQuery.each(jsFiles, function(idx, jsFile){
-					var response = { 'response' : '{"fileName":"'+jsFile.name+'", "status":true, "size":'+jsFile.size+'}', 'status' : true };
+					var response = {
+						'response' : {
+							'name': jsFile['name'],
+							'tmp_name': jsFile['tmp_name'],
+							'type': jsFile['type'],
+							'error': jsFile['error'],
+							'size': jsFile['size']
+						},
+						'status' : true
+					};
+
+
 					uploader.trigger('FileUploaded', jsFile, response);
 				});
 
