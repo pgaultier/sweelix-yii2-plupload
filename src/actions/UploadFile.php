@@ -53,18 +53,21 @@ class UploadFile extends Action {
 			$originalFileName =  Yii::$app->getRequest()->get('name', '');
 			$id = Yii::$app->getRequest()->get('id', 'unk');
 
+			$fileName = uniqid();
+
+			// we can sanitize file a litlle better anyway, this should tdo the trick with all noob users
 			setlocale(LC_ALL, $this->locale);
-			$fileName = iconv('utf-8','ASCII//TRANSLIT//IGNORE', $originalFileName);
+			$originalFileName = iconv('utf-8','ASCII//TRANSLIT//IGNORE', $originalFileName);
 			setlocale(LC_ALL, 0);
 
-			$fileName = strtolower($fileName);
-			$fileName = preg_replace('/([^a-z0-9\._\-])+/iu', '-', $fileName);
+			$originalFileName = preg_replace('/([^a-z0-9\._\-])+/iu', '-', $originalFileName);
 
 			$targetPath = Yii::getAlias(UploadedFile::$targetPath).DIRECTORY_SEPARATOR.$sessionId.DIRECTORY_SEPARATOR.$id;
 
 			if(is_dir($targetPath) == false) {
 				mkdir($targetPath, 0777, true);
 			}
+			/*
 			// create unique fileName only if chunking is disabled
 			if (($chunks < 2) && (file_exists($targetPath . DIRECTORY_SEPARATOR . $fileName) == true)) {
 				$fileNameInfo = pathinfo($fileName);
@@ -74,6 +77,7 @@ class UploadFile extends Action {
 				}
 				$fileName = $fileNameInfo['filename'] . '_' . $count . '.' . $fileNameInfo['extension'];
 			}
+			*/
 
 			$pseudoFileResponse = [
 				'name' => $originalFileName,

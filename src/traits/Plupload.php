@@ -22,6 +22,7 @@ use yii\helpers\ArrayHelper;
 use yii\helpers\Url;
 use yii\helpers\Json;
 use yii\web\Request;
+use yii\validators\FileValidator;
 use Yii;
 
 /*
@@ -40,29 +41,77 @@ use Yii;
  */
 trait Plupload {
 	public static function asyncInput($name, $value = null, $options = []) {
-        $options['name'] = $name;
-		/*
-		if($value === null) {
-			$value = UploadedFile::getInstancesByName($name);
+		$options['name'] = $name;
+
+		// remove the trailing [] which is just annoying except to send multiple files
+		if(substr($name, -2) === '[]') {
+			$originalName = substr($name, 0, -2);
+			$options['config']['multiSelection'] = true;
+		} else {
+			$originalName = $name;
+			$options['config']['multiSelection'] = false;
 		}
-		*/
-        $options['value'] = $value === null ? null : (string) $value;
-        if(isset($options['id']) === false) {
-        	throw new InvalidConfigException('ID for async file input is mandatory');
-        }
+		if($value !== null) {
+			$affectedFiles = preg_split('/[,\s]+/', $value, -1, PREG_SPLIT_NO_EMPTY);
+			$instances = UploadedFile::getInstancesByName($originalName);
+			$value = [];
+			foreach($instances as $instance) {
+				if(in_array($instance->name, $affectedFiles) === true) {
+					$value[] = $instance;
+				}
+			}
+		}
+		// $options['value'] = $value === null ? null :  $value;
+		if(isset($options['id']) === false) {
+			$options['id'] = self::getIdByName($name);
+			// throw new InvalidConfigException('ID for async file input is mandatory');
+		}
 		$config = static::prepareAsyncInput($options);
 		return static::renderAsyncInput($value, $options, $config);
 	}
 
+	public static function activeAsyncInput($model, $attribute, $options = []) {
+		$name = isset($options['name']) ? $options['name'] : static::getInputName($model, $attribute);
+		$value = isset($options['value']) ? $options['value'] : static::getAttributeValue($model, $attribute);
+		$filters = [];
+		foreach($model->getActiveValidators($attribute) as $validator) {
+			if($validator instanceof FileValidator) {
+				// we can set all the parameters
+				if(empty($validator->types) === false) {
+					$filters['mime_types'] = [
+						[
+							'title' => 'Allowed files',
+							'extensions' => implode(',', $validator->types),
+						]
+					];
+				}
+				if($validator->maxSize !== null) {
+					$filters['max_file_size'] = $validator->maxSize;
+				}
+				if($validator->maxFiles > 1) {
+					// multi add brackets
+					$name = $name.'[]';
+				}
+			}
+		}
+		if (!array_key_exists('id', $options)) {
+			$options['id'] = static::getInputId($model, $attribute);
+		}
+
+		return static::input($type, $name, $value, $options);
+
+	}
 	protected static function renderAsyncInput($values, $options, $config) {
 		if(is_array($values) == true) {
 			$uploadedFiles = null;
 			foreach($values as $addedFile) {
 				if($addedFile instanceof UploadedFile) {
 					$uploadedFiles[] = [
-						'fileName' => $addedFile->getName(),
-						'fileSize' => $addedFile->getSize(),
-						'status' => true
+						'name' => $addedFile->name,
+						'tmp_name' => $addedFile->tempName,
+						'type' => $addedFile->type,
+						'error' => $addedFile->error,
+						'size' => $addedFile->size,
 					];
 				}
 			}
@@ -71,9 +120,11 @@ trait Plupload {
 			}
 		} elseif($values instanceof UploadedFile) {
 			$config['uploadedFiles'][] = [
-				'fileName' => $addedFile->getName(),
-				'fileSize' => $addedFile->getSize(),
-				'status' => true
+				'name' => $addedFile->name,
+				'tmp_name' => $addedFile->tempName,
+				'type' => $addedFile->type,
+				'error' => $addedFile->error,
+				'size' => $addedFile->size,
 			];
 		}
 		unset($options['name']);
@@ -174,9 +225,6 @@ trait Plupload {
 			}
 		}
 		$config['realName'] = $options['name'];
-		if($config['multiSelection'] == true) {
-			$config['realName'] .= '[]';
-		}
 		if($config['ui'] === true) {
 			$view = Yii::$app->getView();
 			PluploadUiAsset::register($view);
@@ -186,9 +234,18 @@ trait Plupload {
 		}
 		$pluploadAssetBundle = Yii::$app->getAssetManager()->getBundle(PluploadAsset::className());
 		if((strpos($config['runtimes'], 'flash') !== false) || (strpos($config['runtimes'], 'silverlight') !== false)){
-		 	$config['flashSwfUrl'] = $pluploadAssetBundle->baseUrl.'/Moxie.swf';
-		 	$config['silverlightXapUrl'] = $pluploadAssetBundle->baseUrl.'/Moxie.xap';
- 		}
+			$config['flashSwfUrl'] = $pluploadAssetBundle->baseUrl.'/Moxie.swf';
+			$config['silverlightXapUrl'] = $pluploadAssetBundle->baseUrl.'/Moxie.xap';
+		}
 		return $config;
+	}
+
+	/**
+	 * Generates a valid HTML ID based on name.
+	 * @param string $name name from which to generate HTML ID
+	 * @return string the ID generated based on name.
+	 */
+	public static function getIdByName($name) {
+		return str_replace(array('[]','][','[',']',' '),array('','_','_','','_'),$name);
 	}
 }
