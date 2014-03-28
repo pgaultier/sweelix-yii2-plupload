@@ -76,7 +76,15 @@ class UploadedFile extends BaseUploadedFile {
 			self::$_files = [];
 			if (isset($_POST['_plupload']) && is_array($_POST['_plupload'])) {
 				foreach ($_POST['_plupload'] as $class => $info) {
-					self::loadFilesRecursive($class, $info['name'], $info['tmp_name'], $info['type'], $info['size'], $info['error']);
+					// patch for model handling
+					if(array_key_exists('name', $info) === false) {
+						foreach($info as $modelAttribute => $realInfo) {
+							$realClass = $class.'['.$modelAttribute.']';
+							self::loadFilesRecursive($realClass, $realInfo['name'], $realInfo['tmp_name'], $realInfo['type'], $realInfo['size'], $realInfo['error']);
+						}
+					} else {
+						self::loadFilesRecursive($class, $info['name'], $info['tmp_name'], $info['type'], $info['size'], $info['error']);
+					}
 				}
 			}
 		}
