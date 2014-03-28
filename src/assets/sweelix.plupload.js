@@ -26,8 +26,8 @@
 	}
 
 	function createHiddenField(up, file, hiddenId, config) {
-		var el, nbFile, fieldName, offset;
-		if(parseInt(file.extendedData.error) === 0) {
+		var el, fieldName, offset, checkModel;
+		if(parseInt(file.extendedData.error, 10) === 0) {
 			jQuery('.sweeploadEmpty').remove();
 			if(up.getMultiSelection() === false) {
 				jQuery('#'+hiddenId+' div.file-block').each(function(idx, el){
@@ -41,6 +41,12 @@
 				offset = '[' + jQuery('#'+hiddenId+' div.file-block').length + ']';
 				fieldName = config.realName;
 				fieldName = fieldName.replace(/\[[0-9]*\]/, '');
+			}
+			checkModel = fieldName.match(/([a-z0-9]+)\[([^\]]+)\]/i);
+			if((checkModel !== null) && (checkModel.length === 3)) {
+				// Model[field]
+				// Model][field
+				fieldName = checkModel[1] + '][' + checkModel[2];
 			}
 			el = jQuery('<div class="file-block" id="h'+file.id+'"></div>');
 			el.append('<input type="hidden" name="_plupload['+fieldName+'][name]'+offset+'" value="'+file.extendedData.name+'" />');
