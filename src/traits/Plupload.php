@@ -61,10 +61,8 @@ trait Plupload {
 				}
 			}
 		}
-		// $options['value'] = $value === null ? null :  $value;
 		if(isset($options['id']) === false) {
 			$options['id'] = self::getIdByName($name);
-			// throw new InvalidConfigException('ID for async file input is mandatory');
 		}
 		$config = static::prepareAsyncInput($options);
 		return static::renderAsyncInput($value, $options, $config);
@@ -94,11 +92,11 @@ trait Plupload {
 				}
 			}
 		}
+		$options['config']['filters'] = $filters;
 		if (!array_key_exists('id', $options)) {
 			$options['id'] = static::getInputId($model, $attribute);
 		}
-
-		return static::input($type, $name, $value, $options);
+		return static::asyncInput($name, $value, $options);
 
 	}
 	protected static function renderAsyncInput($values, $options, $config) {
