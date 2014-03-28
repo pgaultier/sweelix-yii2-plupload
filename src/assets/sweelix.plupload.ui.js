@@ -97,13 +97,13 @@ function SweeploadBasicUI() {
 		} else {
 			json = response.response;
 		}
-		if(parseInt(json.error) === 0) {
+		if(parseInt(json.error, 10) === 0) {
 			jQuery('#'+getContainerId()+' #'+file.id+' div.progress').css({width:'100%'});
 			remove = jQuery('<a href="#" class="close">X</a>');
 			remove.one('click', function(evt){
 				evt.preventDefault();
-				self.AsyncDelete(file, name);
-				uploader.removeFile(file, name);
+				self.AsyncDelete(file);
+				uploader.removeFile(file);
 			});
 			jQuery('#'+getContainerId()+' #'+file.id).prepend(remove);
 			jQuery.ajax({
