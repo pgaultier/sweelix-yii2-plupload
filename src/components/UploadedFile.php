@@ -15,6 +15,7 @@
 
 namespace sweelix\yii2\plupload\components;
 use yii\web\UploadedFile as BaseUploadedFile;
+use Yii;
 
 /**
  * Class UploadedFile
@@ -99,6 +100,38 @@ class UploadedFile extends BaseUploadedFile {
 		self::$_files = null;
 	}
 
+
+    public static function getInstance($model, $attribute)
+    {
+        $name = Html::getInputName($model, $attribute);
+        return static::getInstanceByName($name);
+    }
+
+    public static function getInstances($model, $attribute)
+    {
+        $name = Html::getInputName($model, $attribute);
+        return static::getInstancesByName($name);
+    }
+
+    public static function getInstanceByName($name)
+    {
+        $files = self::loadFiles();
+        return isset($files[$name]) ? $files[$name] : null;
+    }
+    public static function getInstancesByName($name)
+    {
+        $files = self::loadFiles();
+        if (isset($files[$name])) {
+            return [$files[$name]];
+        }
+        $results = [];
+        foreach ($files as $key => $file) {
+            if (strpos($key, "{$name}[") === 0) {
+                $results[] = $file;
+            }
+        }
+        return $results;
+    }
 	/**
 	 * Creates UploadedFile instances from $_FILE recursively.
 	 * @param string $key key for identifying uploaded file: class name and sub-array indexes

@@ -85,13 +85,17 @@ function SweeploadBasicUI() {
 
 	this.FilesAdded = function (up, files) {
 		jQuery.each(files,  function(i, file){
-			jQuery('#'+getContainerId()).append('<li id="'+ file.id + '" class="fileContainer" title="'+file.name+'"><span>' + cutName(file.name.replace('tmp://', '')) + ' ('+ formatSize(file.size) +')</span><div class="progressBar"><div class="progress"></div></div></li>');
+			var size = '';
+			if(file.size > 0) {
+				size = ' ('+ formatSize(file.size) +')';
+			}
+			jQuery('#'+getContainerId()).append('<li id="'+ file.id + '" class="fileContainer" title="'+file.name+'"><span>' + cutName(file.name) + size +'</span><div class="progressBar"><div class="progress"></div></div></li>');
 		});
 		// up.refresh();
 	};
 
 	this.FileUploaded = function (up, file, response) {
-		var json, name, remove;
+		var json, name, remove, requestData = {};
 		if(typeof(response.response) === 'string') {
 			json = jQuery.parseJSON(response.response);
 		} else {
@@ -106,15 +110,16 @@ function SweeploadBasicUI() {
 				uploader.removeFile(file);
 			});
 			jQuery('#'+getContainerId()+' #'+file.id).prepend(remove);
+			requestData = {
+				'tmp_name' : json.tmp_name,
+				'name' : json.name,
+				'mode' : 'json'
+			};
 			jQuery.ajax({
 				'url' : getPreviewUrl(),
-				'data' : {
-					'tmp_name' : json.tmp_name,
-					'name' : json.name,
-					'mode' : 'json'
-				}
+				'data' : requestData
 			}).done(function(data){
-				var element, config;
+				var element, config, size = '';
 				if(data.path !== null) {
 					element = jQuery('<a href="'+data.path+'" target="_blank"><img src="'+data.url+'" /></a>');
 					config = getConfig();
@@ -133,7 +138,10 @@ function SweeploadBasicUI() {
 				jQuery('#'+getContainerId()+' #'+file.id).append(element);
 				// reset correct name
 				jQuery('#'+getContainerId()+' #'+file.id).attr('title', file.extendedData.name);
-				jQuery('#'+getContainerId()+' #'+file.id+ ' span:first').replaceWith('<span>' + cutName(file.extendedData.name) + ' ('+ formatSize(file.size) +')</span>');
+				if(file.size > 0) {
+					size = ' ('+ formatSize(file.size) +')';
+				}
+				jQuery('#'+getContainerId()+' #'+file.id+ ' span:first').replaceWith('<span>' + cutName(file.extendedData.name) + size + '</span>');
 			});
 
 		}

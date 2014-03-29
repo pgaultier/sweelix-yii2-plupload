@@ -52,13 +52,28 @@ trait Plupload {
 			$options['config']['multiSelection'] = false;
 		}
 		if($value !== null) {
-			$affectedFiles = preg_split('/[,\s]+/', $value, -1, PREG_SPLIT_NO_EMPTY);
+			$affectedFiles = preg_split('/[,]+/', $value, -1, PREG_SPLIT_NO_EMPTY);
+			$affectedFiles = array_map(function($el) {
+				// remove everything which is path related. It must be handled by the developper / model
+				return pathinfo(trim($el), PATHINFO_BASENAME);
+			}, $affectedFiles);
 			$instances = UploadedFile::getInstancesByName($originalName);
 			$value = [];
 			foreach($instances as $instance) {
 				if(in_array($instance->name, $affectedFiles) === true) {
+					$affectedFilesKeys = array_keys($affectedFiles, $instance->name);
+					unset($affectedFiles[$affectedFilesKeys[0]]);
 					$value[] = $instance;
 				}
+			}
+			foreach($affectedFiles as $remainingFile) {
+				$value[] = new UploadedFile([
+	                'name' => $remainingFile,
+	                'tempName' => null,
+	                'type' => 'application/octet-stream',
+	                'size' => null,
+	                'error' => 0,
+	            ]);
 			}
 		}
 		if(isset($options['id']) === false) {
@@ -72,6 +87,11 @@ trait Plupload {
 		$name = isset($options['name']) ? $options['name'] : static::getInputName($model, $attribute);
 		$value = isset($options['value']) ? $options['value'] : static::getAttributeValue($model, $attribute);
 		$filters = [];
+		if($model->hasMethod('isAutomatic') === true) {
+			if(($model->isAutomatic($attribute) === true) && ($model->getBasePath($attribute) !== null)) {
+				$options['config']['targetPathAlias'] = $model->getBasePath($attribute);
+			}
+		}
 		foreach($model->getActiveValidators($attribute) as $validator) {
 			if($validator instanceof FileValidator) {
 				// we can set all the parameters
@@ -105,11 +125,11 @@ trait Plupload {
 			foreach($values as $addedFile) {
 				if($addedFile instanceof UploadedFile) {
 					$uploadedFiles[] = [
-						'name' => $addedFile->name,
-						'tmp_name' => $addedFile->tempName,
-						'type' => $addedFile->type,
-						'error' => $addedFile->error,
-						'size' => $addedFile->size,
+						'name' => (string)$addedFile->name,
+						'tmp_name' => (string)$addedFile->tempName,
+						'type' => (string)$addedFile->type,
+						'error' => (int)$addedFile->error,
+						'size' => (int)$addedFile->size,
 					];
 				}
 			}
@@ -118,11 +138,11 @@ trait Plupload {
 			}
 		} elseif($values instanceof UploadedFile) {
 			$config['uploadedFiles'][] = [
-				'name' => $addedFile->name,
-				'tmp_name' => $addedFile->tempName,
-				'type' => $addedFile->type,
-				'error' => $addedFile->error,
-				'size' => $addedFile->size,
+				'name' => (string)$addedFile->name,
+				'tmp_name' => (string)$addedFile->tempName,
+				'type' => (string)$addedFile->type,
+				'error' => (int)$addedFile->error,
+				'size' => (int)$addedFile->size,
 			];
 		}
 		unset($options['name']);
@@ -147,12 +167,12 @@ trait Plupload {
 		unset($options['value']);
 
 		$htmlTag = static::tag($tag, $content, $options);
-		if((Yii::$app->getRequest()->isAjax === false) && (Yii::$app->getRequest()->isPjax === false)) {
+		// if((Yii::$app->getRequest()->isAjax === false) && (Yii::$app->getRequest()->isPjax === false)) {
 			Yii::$app->getView()->registerJs($js);
 			// Yii::$app->clientScript->registerScript($htmlOptions['id'], $js);
-		} else {
-			$htmlTag = $htmlTag."\n".static::script($js);
-		}
+		// } else {
+		// 	$htmlTag = $htmlTag."\n".static::script($js);
+		// }
 		return $htmlTag;
 	}
 
@@ -186,6 +206,9 @@ trait Plupload {
 		];
 
 		if(isset($options['config']) == true) {
+			if(isset($options['config']['targetPathAlias']) === true) {
+				$config['urlPreview']['targetPathAlias'] = $options['config']['targetPathAlias'];
+			}
 			if(isset($options['config']['urlPreview']) && is_array($options['config']['urlPreview']) === true) {
 				$options['config']['urlPreview'] = array_merge(
 					$options['config']['urlPreview'],

@@ -38,6 +38,13 @@ class UploadFile extends Action {
 	 * @var string define locale used for transliteration
 	 */
 	public $locale = 'fr_FR.UTF8';
+
+	public function generateToken() {
+       $time = microtime();
+        $time = str_replace('.', '', $time);
+        $time = explode(' ',$time);
+        return  base_convert((int)$time[0] ^ (int)$time[1], 10, 32);
+	}
 	/**
 	 * Run the action and perform the upload process
 	 *
@@ -53,16 +60,24 @@ class UploadFile extends Action {
 			$originalFileName =  Yii::$app->getRequest()->get('name', '');
 			$id = Yii::$app->getRequest()->get('id', 'unk');
 
-			$fileName = uniqid();
-
-			// we can sanitize file a litlle better anyway, this should tdo the trick with all noob users
 			setlocale(LC_ALL, $this->locale);
 			$originalFileName = iconv('utf-8','ASCII//TRANSLIT//IGNORE', $originalFileName);
 			setlocale(LC_ALL, 0);
 
 			$originalFileName = preg_replace('/([^a-z0-9\._\-])+/iu', '-', $originalFileName);
 
-			$targetPath = Yii::getAlias(UploadedFile::$targetPath).DIRECTORY_SEPARATOR.$sessionId.DIRECTORY_SEPARATOR.$id;
+			if($chunks < 2) {
+				// we are not chunking. we can generate token
+				$fileName = $this->generateToken();
+				$targetPath = Yii::getAlias(UploadedFile::$targetPath);
+			} else {
+				// we can only generate token for last one
+				$targetPath = Yii::getAlias(UploadedFile::$targetPath).DIRECTORY_SEPARATOR.$sessionId.DIRECTORY_SEPARATOR.$id;
+				$fileName = $originalFileName;
+			}
+
+			// we can sanitize file a litlle better anyway, this should tdo the trick with all noob users
+
 
 			if(is_dir($targetPath) == false) {
 				mkdir($targetPath, 0777, true);
@@ -140,6 +155,14 @@ class UploadFile extends Action {
 					$pseudoFileResponse['error'] = UPLOAD_ERR_CANT_WRITE;
 				}
 			}
+			// before doing anything, should we rename the file (after chunking)
+			if(($chunks >= 2) && ($chunk == ($chunks - 1))) {
+				$newfileName = $this->generateToken();
+				rename($targetPath . DIRECTORY_SEPARATOR . $fileName, Yii::getAlias(UploadedFile::$targetPath).DIRECTORY_SEPARATOR.$newfileName);
+				$pseudoFileResponse['tmp_name'] = $newfileName;
+			}
+
+
 			Yii::$app->getResponse()->format = Response::FORMAT_JSON;
 			return $pseudoFileResponse;
 			// return Yii::$app->getResponse();

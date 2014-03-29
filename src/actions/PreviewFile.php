@@ -73,15 +73,17 @@ class PreviewFile extends Action {
 			Yii::$app->getSession()->open();
 			$sessionId =  Yii::$app->getRequest()->get('key', Yii::$app->getSession()->getId());
 			$id = Yii::$app->getRequest()->get('id', 'unk');
+			$additionalParameters = [];
 
 			if(empty($tempName) === false) {
 				$tempFile = true;
 				$fileName = $tempName;
-				$targetPath = Yii::getAlias(UploadedFile::$targetPath).DIRECTORY_SEPARATOR.$sessionId.DIRECTORY_SEPARATOR.$id;
+				$targetPath = Yii::getAlias(UploadedFile::$targetPath);
 			} else {
 				$fileName = $name;
 				$targetPath = Yii::getAlias(Yii::$app->getRequest()->get('targetPathAlias', '@webroot'));
 			}
+			// var_dump(empty($tempName), $targetPath);die();
 			/*
 			if (strncmp($fileName, 'tmp://', 6) === 0) {
 				$tempFile = true;
@@ -97,6 +99,7 @@ class PreviewFile extends Action {
 					if(isset($matches[1]) === true) {
 						foreach($matches[1] as $repKey) {
 							$replacement['{'.$repKey.'}'] = Yii::$app->getRequest()->get($repKey, '');
+							$additionalParameters[$repKey] = Yii::$app->getRequest()->get($repKey, '');
 						}
 						$targetPath = str_replace(array_keys($replacement), array_values($replacement), $targetPath);
 					}
@@ -134,19 +137,26 @@ class PreviewFile extends Action {
 							'height' => $height,
 							'fit' => $fit,
 					]);
-					$response['path'] = null;
+					// $response['path'] = null;
 				} else {
-					$basePath = Yii::getAlias('@webroot');
-					$relativeFile = ltrim(str_replace($basePath, '', $file), '/');
-					$response['url'] = Url::to([$this->id,
+					// $basePath = Yii::getAlias('@webroot');
+					// $relativeFile = ltrim(str_replace($basePath, '', $file), '/');
+					$response['url'] = [$this->id,
 							'mode' => 'raw',
 							'name' => $name,
 							'tmp_name' => $tempName,
 							'width' => $width,
 							'height' => $height,
 							'fit' => $fit,
-					]);
-					$response['path'] = $relativeFile;
+					];
+					if(Yii::$app->getRequest()->get('targetPathAlias', null) !== null) {
+						$response['url']['targetPathAlias'] = Yii::$app->getRequest()->get('targetPathAlias', null);
+						foreach($additionalParameters as $key => $value) {
+							$response['url'][$key] = $value;
+						}
+					}
+					$response['url'] = Url::to($response['url']);
+					// $response['path'] = $relativeFile;
 				}
 				$response['name'] = $fileName;
 			}
@@ -177,7 +187,7 @@ class PreviewFile extends Action {
 			if(empty($tempName) === false) {
 				$tempFile = true;
 				$fileName = $tempName;
-				$targetPath = Yii::getAlias(UploadedFile::$targetPath).DIRECTORY_SEPARATOR.$sessionId.DIRECTORY_SEPARATOR.$id;
+				$targetPath = Yii::getAlias(UploadedFile::$targetPath);
 			} else {
 				$fileName = $name;
 				$targetPath = Yii::getAlias(Yii::$app->getRequest()->get('targetPathAlias', '@webroot'));
