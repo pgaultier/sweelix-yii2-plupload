@@ -40,70 +40,29 @@ use Yii;
  * @since     XXX
  */
 trait Plupload {
-	public static function asyncInput($name, $value = null, $options = []) {
-		$options['name'] = $name;
-
-		// remove the trailing [] which is just annoying except to send multiple files
-		if(substr($name, -2) === '[]') {
-			$originalName = substr($name, 0, -2);
-			$options['config']['multiSelection'] = true;
-		} else {
-			$originalName = $name;
-			$options['config']['multiSelection'] = false;
-		}
-		if($value !== null) {
-			$affectedFiles = preg_split('/[,]+/', $value, -1, PREG_SPLIT_NO_EMPTY);
-			$affectedFiles = array_map(function($el) {
-				// remove everything which is path related. It must be handled by the developper / model
-				return pathinfo(trim($el), PATHINFO_BASENAME);
-			}, $affectedFiles);
-			$instances = UploadedFile::getInstancesByName($originalName);
-			$value = [];
-			foreach($instances as $instance) {
-				if(in_array($instance->name, $affectedFiles) === true) {
-					$affectedFilesKeys = array_keys($affectedFiles, $instance->name);
-					unset($affectedFiles[$affectedFilesKeys[0]]);
-					$value[] = $instance;
-				}
-			}
-			foreach($affectedFiles as $remainingFile) {
-				$value[] = new UploadedFile([
-	                'name' => $remainingFile,
-	                'tempName' => null,
-	                'type' => 'application/octet-stream',
-	                'size' => null,
-	                'error' => 0,
-	            ]);
-			}
-		}
-		if(isset($options['id']) === false) {
-			$options['id'] = self::getIdByName($name);
-		}
-		$config = static::prepareAsyncInput($options);
-		return static::renderAsyncInput($value, $options, $config);
-	}
 
 	public static function activeAsyncInput($model, $attribute, $options = []) {
 		$name = isset($options['name']) ? $options['name'] : static::getInputName($model, $attribute);
 		$value = isset($options['value']) ? $options['value'] : static::getAttributeValue($model, $attribute);
-		$filters = [];
+		// handled by AutomaticUpload otherwise targetPathAlias must be set manually
 		if($model->hasMethod('isAutomatic') === true) {
 			if(($model->isAutomatic($attribute) === true) && ($model->getBasePath($attribute) !== null)) {
 				$options['config']['targetPathAlias'] = $model->getBasePath($attribute);
 			}
 		}
+		$filters = [];
 		foreach($model->getActiveValidators($attribute) as $validator) {
 			if($validator instanceof FileValidator) {
 				// we can set all the parameters
 				if(empty($validator->types) === false) {
 					$filters['mime_types'] = [
 						[
-							'title' => 'Allowed files',
+							'title' => Yii::t('sweelix', 'Allowed files'),
 							'extensions' => implode(',', $validator->types),
 						]
 					];
 				}
-				if($validator->maxSize !== null) {
+				if(($validator->maxSize !== null) && ($validator->maxSize > 0)) {
 					$filters['max_file_size'] = $validator->maxSize;
 				}
 				if($validator->maxFiles > 1) {
@@ -119,6 +78,94 @@ trait Plupload {
 		return static::asyncInput($name, $value, $options);
 
 	}
+
+
+	/**
+	 * Create an asynchronous file upload.
+	 * Plupload specific configuration should be set in $options['config']
+	 *
+	 * @param  string       $name    name of the input (append [] for multifile upload)
+	 * @param  string|array $value   the file(s) already uploaded (array for multifile upload)
+	 * @param  array        $options @see static::input()
+	 *
+	 * @return string
+	 * @since  XXX
+	 */
+	public static function asyncInput($name, $value = null, $options = []) {
+		// prepare data
+		$originalName = $name;
+		if(empty($value) === true) {
+			$value = null;
+		}
+		// prepare option data
+		$options['name'] = $name;
+		$options['config']['multiSelection'] = false;
+		if(isset($options['id']) === false) {
+			$options['id'] = self::getIdByName($name);
+		}
+
+
+		// remove the trailing [] which is just annoying except to send multiple files
+		// we rely on [] to define the multiple file upload
+		if(substr($name, -2) === '[]') {
+			$originalName = substr($name, 0, -2);
+			$options['config']['multiSelection'] = true;
+			if($value !== null) {
+				if(is_array($value) === false) {
+					// force array for multifile
+					$value = [$value];
+				}
+				$value = array_map(function($el) {
+					// remove everything which is path related. It must be handled by the developper / model
+					return pathinfo(trim($el), PATHINFO_BASENAME);
+				}, $value);
+			}
+		} else {
+			if($value !== null) {
+				$value = pathinfo((string)$value, PATHINFO_BASENAME);
+			}
+		}
+
+
+		if($value !== null) {
+			// we must retrieve original data
+			$instances = UploadedFile::getInstancesByName($originalName);
+
+			// force check with arrays
+			$affectedFiles = (is_array($value) === true)?$value:[$value];
+
+			//translate everything into UploadedFile(s)
+			$translatedValues = [];
+			foreach($instances as $instance) {
+				if(in_array($instance->name, $affectedFiles) === true) {
+					$affectedFilesKeys = array_keys($affectedFiles, $instance->name);
+					unset($affectedFiles[$affectedFilesKeys[0]]);
+					$translatedValues[] = $instance;
+				}
+			}
+			foreach($affectedFiles as $remainingFile) {
+				// we are looking at already saved files. Reinit as expected
+				$translatedValues[] = new UploadedFile([
+	                'name' => $remainingFile,
+	                'tempName' => null,
+	                'type' => 'application/octet-stream',
+	                'size' => null,
+	                'error' => 0,
+	            ]);
+			}
+
+			$value = $translatedValues;
+
+			if($options['config']['multiSelection'] === false) {
+				// get first value in case we are not multi
+				$value = array_pop($value);
+			}
+		}
+
+		$config = static::prepareAsyncInput($options);
+		return static::renderAsyncInput($value, $options, $config);
+	}
+
 	protected static function renderAsyncInput($values, $options, $config) {
 		if(is_array($values) == true) {
 			$uploadedFiles = null;
@@ -138,14 +185,15 @@ trait Plupload {
 			}
 		} elseif($values instanceof UploadedFile) {
 			$config['uploadedFiles'][] = [
-				'name' => (string)$addedFile->name,
-				'tmp_name' => (string)$addedFile->tempName,
-				'type' => (string)$addedFile->type,
-				'error' => (int)$addedFile->error,
-				'size' => (int)$addedFile->size,
+				'name' => (string)$values->name,
+				'tmp_name' => (string)$values->tempName,
+				'type' => (string)$values->type,
+				'error' => (int)$values->error,
+				'size' => (int)$values->size,
 			];
 		}
 		unset($options['name']);
+
 		if(isset($options['tag']) == true) {
 			$tag = $options['tag'];
 			unset($options['tag']);
@@ -166,17 +214,19 @@ trait Plupload {
 		unset($options['uploadOptions']);
 		unset($options['value']);
 
-		$htmlTag = static::tag($tag, $content, $options);
-		// if((Yii::$app->getRequest()->isAjax === false) && (Yii::$app->getRequest()->isPjax === false)) {
-			Yii::$app->getView()->registerJs($js);
-			// Yii::$app->clientScript->registerScript($htmlOptions['id'], $js);
-		// } else {
-		// 	$htmlTag = $htmlTag."\n".static::script($js);
-		// }
-		return $htmlTag;
+		// append needed javascript to current view
+		Yii::$app->getView()->registerJs($js);
+		return static::tag($tag, $content, $options);
 	}
 
-
+	/**
+	 * Prepare everything for plupload, attach javascript, ...
+	 *
+	 * @param  array &$options raw option values (plupload specific parts will be removed)
+	 *
+	 * @return array
+	 * @since  XXX
+	 */
 	protected static function prepareAsyncInput(&$options) {
 		Yii::$app->getSession()->open();
 		$config = [
@@ -266,7 +316,7 @@ trait Plupload {
 	 * @param string $name name from which to generate HTML ID
 	 * @return string the ID generated based on name.
 	 */
-	public static function getIdByName($name) {
+	private static function getIdByName($name) {
 		return str_replace(array('[]','][','[',']',' '),array('','_','_','','_'),$name);
 	}
 }

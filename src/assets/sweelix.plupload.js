@@ -14,15 +14,23 @@
 
 (function (window, jQuery, plupload) {
 
-	function prepareFakeAttribute(hiddenId, config) {
-		var fakeAttribute = [],
-			fieldName = config.realName;
+	function prepareFakeAttribute(up, hiddenId, config) {
+		var fieldName = config.realName;
 		fieldName = fieldName.replace(/\[[0-9]*\]/, '');
-		jQuery('#'+hiddenId+' div.file-block').each(function(idx, el) {
-			fakeAttribute.push(jQuery(el).find('input[type=hidden]:first').val());
-		});
 		jQuery('#'+hiddenId+' input.fake-attribute').remove();
-		jQuery('#'+hiddenId).append('<input type="hidden" class="fake-attribute" name="' + fieldName + '" value="' + fakeAttribute.join() + '" />');
+		if(up.getMultiSelection() === false) {
+			jQuery('#'+hiddenId+' div.file-block:first').each(function(idx, el) {
+				var fakeAttribute = jQuery(el).find('input[type=hidden]:first').val();
+				jQuery('#'+hiddenId).append('<input type="hidden" class="fake-attribute" name="' + fieldName + '" value="' + fakeAttribute + '" />');
+			});
+		} else {
+			jQuery('#'+hiddenId+' div.file-block').each(function(idx, el) {
+				var fakeAttribute = jQuery(el).find('input[type=hidden]:first').val();
+				jQuery('#'+hiddenId).append('<input type="hidden" class="fake-attribute" name="' + fieldName + '[]" value="' + fakeAttribute + '" />');
+			});
+
+		}
+
 	}
 
 	function createHiddenField(up, file, hiddenId, config) {
@@ -55,7 +63,7 @@
 			el.append('<input type="hidden" name="_plupload['+fieldName+'][size]'+offset+'" value="'+file.extendedData.size+'" />');
 			el.append('<input type="hidden" name="_plupload['+fieldName+'][error]'+offset+'" value="'+file.extendedData.error+'" />');
 			jQuery('#'+hiddenId).append(el);
-			prepareFakeAttribute(hiddenId, config);
+			prepareFakeAttribute(up, hiddenId, config);
 		}
 	}
 
@@ -66,7 +74,7 @@
 		var baseConfig = {
 			'runtimes' : (!!config.runtimes)?config.runtimes:'flash',
 			'multi_selection': (!!config.multiSelection)?config.multiSelection:false,
-			'max_file_size': (!!config.maxFileSize)?config.maxFileSize:'10mb',
+			'max_file_size': (!!config.maxFileSize)?config.maxFileSize:0,
 			'chunk_size':(!!config.chunkSize)?config.chunkSize:'10mb',
 			'unique_names':(!!config.uniqueNames)?config.uniqueNames:false,
 			'url':config.url,
@@ -201,7 +209,7 @@
 						jQuery('#'+hiddenId).append('<input type="hidden" class="sweeploadEmpty" name="'+config.realName+'" value="" />');
 					}
 				});
-				prepareFakeAttribute(hiddenId, config);
+				prepareFakeAttribute(up, hiddenId, config);
 
 			});
 

@@ -16,7 +16,9 @@
 namespace sweelix\yii2\plupload\behaviors;
 use sweelix\yii2\plupload\components\UploadedFile;
 use yii\base\Behavior;
+use yii\validators\FileValidator;
 use yii\db\ActiveRecord;
+use yii\helpers\Json;
 use yii\helpers\Html;
 use Yii;
 use Exception;
@@ -41,10 +43,13 @@ class AutomaticUpload extends Behavior {
 	protected $shouldResaveFileWithArgs = false;
 	public function events() {
 		return [
+			/**/
+			ActiveRecord::EVENT_AFTER_FIND => 'afterFind',
 			ActiveRecord::EVENT_BEFORE_INSERT => 'beforeInsert',
 			ActiveRecord::EVENT_AFTER_INSERT => 'afterInsert',
 			ActiveRecord::EVENT_BEFORE_UPDATE => 'beforeUpdate',
 			// ActiveRecord::EVENT_AFTER_DELETE => 'afterDelete',
+			/**/
 		];
 	}
 
@@ -54,6 +59,30 @@ class AutomaticUpload extends Behavior {
 		$name = iconv('utf-8','ASCII//TRANSLIT//IGNORE', $name);
 		setlocale(LC_ALL, 0);
 		return preg_replace('/([^a-z0-9\._\-])+/iu', '-', $name);
+	}
+
+	private static $_isMultiFile = [];
+	/**
+	 * Check if current attribute
+	 * @param  [type]  $attribute [description]
+	 * @return boolean            [description]
+	 */
+	protected function isMultifile($attribute) {
+		if(isset(self::$_isMultiFile[$attribute]) === false) {
+			self::$_isMultiFile[$attribute] = false;
+			foreach($this->owner->getActiveValidators($attribute) as $validator) {
+				if($validator instanceof FileValidator) {
+					// we can set all the parameters
+					if($validator->maxFiles > 1) {
+						// multi add brackets
+						self::$_isMultiFile[$attribute] = true;
+						break;
+					}
+				}
+			}
+
+		}
+		return self::$_isMultiFile[$attribute];
 	}
 
 	public function beforeInsert() {
@@ -79,16 +108,23 @@ class AutomaticUpload extends Behavior {
 						throw new Exception('Cannot create target directory');
 					}
 				}
-
 				$attributeName = Html::getInputName($this->owner, $attribute);
-				echo '<pre>';
-				var_dump($attributeName);
-				var_dump($_POST);
+
+
 				$uploadedFiles = UploadedFile::getInstancesByName($attributeName);
-				var_dump($uploadedFiles);
-				echo '</pre>';
+
 				$fileNames = $this->owner->{$attribute};
-				$selectedFiles = preg_split('/[,]+/', $fileNames, -1, PREG_SPLIT_NO_EMPTY);
+
+				if($this->isMultifile($attribute) === true) {
+					if(is_array($fileNames) === true) {
+						$selectedFiles = $fileNames ;
+					} else {
+						$selectedFiles = [(string)$fileNames];
+					}
+				} else {
+					$selectedFiles = [(string)$this->{$attribute}];
+				}
+
 				$selectedFiles = array_map(function($el) {
 					return trim($el);
 				}, $selectedFiles);
@@ -102,7 +138,11 @@ class AutomaticUpload extends Behavior {
 						}
 					}
 				}
-				$this->owner->{$attribute} = implode(',', $savedFiles);
+				if($this->isMultifile($attribute) === true) {
+					$this->owner->{$attribute} = $savedFiles;
+				} else {
+					$this->owner->{$attribute} = array_pop($savedFiles);
+				}
 			} else {
 				$this->shouldResaveFileWithArgs[$attribute] = true;
 			}
@@ -185,6 +225,50 @@ class AutomaticUpload extends Behavior {
 		}
 	}
 
+	public $linearizeCallback;
+	public $delinearizeCallback;
+
+	/**
+	 * Convert array to string
+	 *
+	 * @param  array $files list of files to linearize
+	 *
+	 * @return string
+	 * @since  XXX
+	 */
+	protected function linearize($files) {
+		return Json::encode($files);
+	}
+
+	/**
+	 * Convert string to array
+	 *
+	 * @param  string $linearizedFiles list of files to delinearize
+	 *
+	 * @return array
+	 * @since  XXX
+	 */
+	protected function delinearize($linearizedFiles) {
+		return Json::decode($linearizedFiles);
+	}
+
+	public function afterFind() {
+		foreach($this->attributes as $attribute => $config) {
+			if(self::isMultifile($attribute) === true) {
+				if(is_callable($this->delinearizeCallback) === true) {
+					$attributeContent = call_user_func(array($this, 'delinearizeCallback'), $this->owner->{$attribute});
+				} else {
+					$attributeContent = call_user_func(array($this, 'delinearize'), $this->owner->{$attribute});
+				}
+
+				if(is_array($attributeContent) === false) {
+					$attributeContent = [$attributeContent];
+				}
+				$this->owner->{$attribute} = $attributeContent;
+			}
+		}
+	}
+
 	public function beforeUpdate() {
 		foreach($this->attributes as $attribute => $config) {
 			if(isset($config['basePath']) === true) {
@@ -197,25 +281,25 @@ class AutomaticUpload extends Behavior {
 			} else {
 				$baseUrl = Yii::getAlias('@web');
 			}
-
-
 			if(is_dir($basePath) == false) {
 				if(mkdir($basePath, 0777, true) === false) {
 					throw new Exception('Cannot create target directory');
 				}
 			}
 
+
+			if(is_array($this->owner->{$attribute}) === false) {
+				$this->owner->{$attribute} = [$this->owner->{$attribute}];
+			}
+			// clean up attributes
+			$this->owner->{$attribute} = array_map(function($el) {
+				return trim($el);
+			}, $this->owner->{$attribute});
+			$selectedFiles = array_filter($this->owner->{$attribute});
+
+			$savedFiles = [];
 			$attributeName = Html::getInputName($this->owner, $attribute);
 			$uploadedFiles = UploadedFile::getInstancesByName($attributeName);
-
-			// case 1, there is no upload. Do nothing
-			// var_dump($this->owner->{$attribute}, $uploadedFiles); die();
-			$fileNames = $this->owner->{$attribute};
-			$selectedFiles = preg_split('/[,]+/', $fileNames, -1, PREG_SPLIT_NO_EMPTY);
-			$selectedFiles = array_map(function($el) {
-				return trim($el);
-			}, $selectedFiles);
-			$savedFiles = [];
 			foreach($uploadedFiles as $instance) {
 				if(in_array($instance->name, $selectedFiles) === true) {
 					if(empty($instance->tempName) === true) {
@@ -226,15 +310,28 @@ class AutomaticUpload extends Behavior {
 					} else {
 						$fileName = static::sanitize($instance->name);
 						$targetFile = $basePath.DIRECTORY_SEPARATOR.$fileName;
-						if($instance->saveAs($targetFile)) {
+						if($instance->saveAs($targetFile) === true) {
+							//TODO: saved files must be removed - correct place would be in UploadedFile
 							$savedFiles[] = $baseUrl.'/'.$fileName;
 						}
 					}
 				}
 			}
-			$this->owner->{$attribute} = implode(',', $savedFiles);
+			var_dump($savedFiles, $this->isMultifile($attribute));
+			if($this->isMultifile($attribute) === true) {
+				if(is_callable($this->linearizeCallback) === true) {
+					$this->owner->{$attribute} = call_user_func(array($this, 'linearizeCallback'), $savedFiles);
+				} else {
+					$this->owner->{$attribute} = call_user_func(array($this, 'linearize'), $savedFiles);
+				}
+			} else {
+				$this->owner->{$attribute} = array_pop($savedFiles);
+			}
 		}
+	}
 
+	public function afterUpdate() {
+		$this->afterFind();
 	}
 
 

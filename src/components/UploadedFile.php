@@ -100,7 +100,6 @@ class UploadedFile extends BaseUploadedFile {
 		self::$_files = null;
 	}
 
-
     public static function getInstance($model, $attribute)
     {
         $name = Html::getInputName($model, $attribute);
@@ -113,13 +112,11 @@ class UploadedFile extends BaseUploadedFile {
         return static::getInstancesByName($name);
     }
 
-    public static function getInstanceByName($name)
-    {
+    public static function getInstanceByName($name) {
         $files = self::loadFiles();
         return isset($files[$name]) ? $files[$name] : null;
     }
-    public static function getInstancesByName($name)
-    {
+    public static function getInstancesByName($name) {
         $files = self::loadFiles();
         if (isset($files[$name])) {
             return [$files[$name]];
@@ -171,11 +168,12 @@ class UploadedFile extends BaseUploadedFile {
 		$result = false;
 		if ($this->error == UPLOAD_ERR_OK) {
 			$originalFile = Yii::getAlias(self::$targetPath).DIRECTORY_SEPARATOR.$this->tempName;
+			$targetFile = Yii::getAlias($file);
 			if(file_exists($originalFile) === true) {
 				if ($deleteTempFile) {
-					$result = rename($originalFile , $file);
+					$result = rename($originalFile , $targetFile);
 				} else {
-					$result = copy($originalFile , $file);
+					$result = copy($originalFile , $targetFile);
 				}
 			}
 		}
