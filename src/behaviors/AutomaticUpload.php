@@ -55,10 +55,18 @@ class AutomaticUpload extends Behavior {
 		];
 	}
 
-	protected function foldAttribute($attribute) {
+	/**
+	 * Serialize file attribute when multifile upload is active
+	 *
+	 * @param  string $attribute the attribute name
+	 *
+	 * @return void
+	 * @since  XXX
+	 */
+	protected function serializeAttribute($attribute) {
 		if($this->isMultifile($attribute) === true) {
-			if(is_callable($this->linearizeCallback) === true) {
-				$this->owner->{$attribute} = call_user_func(array($this, 'linearizeCallback'), $this->owner->{$attribute});
+			if(is_callable($this->serializeCallback) === true) {
+				$this->owner->{$attribute} = call_user_func(array($this, 'serializeCallback'), $this->owner->{$attribute});
 			} else {
 				$this->owner->{$attribute} = Json::encode($this->owner->{$attribute});
 			}
@@ -68,10 +76,18 @@ class AutomaticUpload extends Behavior {
 		}
 	}
 
-	protected function unfoldAttribute($attribute) {
+	/**
+	 * Unserialize file attribute when multifile upload is active
+	 *
+	 * @param  string $attribute the attribute name
+	 *
+	 * @return void
+	 * @since  XXX
+	 */
+	protected function unserializeAttribute($attribute) {
 		if(self::isMultifile($attribute) === true) {
-			if(is_callable($this->delinearizeCallback) === true) {
-				$attributeContent = call_user_func(array($this, 'delinearizeCallback'), $this->owner->{$attribute});
+			if(is_callable($this->unserializeCallback) === true) {
+				$attributeContent = call_user_func(array($this, 'unserializeCallback'), $this->owner->{$attribute});
 			} else {
 				$attributeContent = Json::decode($this->owner->{$attribute});
 			}
@@ -83,6 +99,14 @@ class AutomaticUpload extends Behavior {
 		}
 	}
 
+	/**
+	 * Clean up file name
+	 *
+	 * @param  string $name file name to sanitize
+	 *
+	 * @return string
+	 * @since  XXX
+	 */
 	public static function sanitize($name) {
 		// we can sanitize file a litlle better anyway, this should tdo the trick with all noob users
 		setlocale(LC_ALL, self::$sanitizeLocale);
@@ -91,11 +115,18 @@ class AutomaticUpload extends Behavior {
 		return preg_replace('/([^a-z0-9\._\-])+/iu', '-', $name);
 	}
 
+	/**
+	 * @var array lazy loaded file information
+	 */
 	private static $_isMultiFile = [];
+
 	/**
 	 * Check if current attribute
-	 * @param  [type]  $attribute [description]
-	 * @return boolean            [description]
+	 *
+	 * @param  string  $attribute check if file attribute support multifile
+	 *
+	 * @return boolean
+	 * @since  XXX
 	 */
 	protected function isMultifile($attribute) {
 		if(isset(self::$_isMultiFile[$attribute]) === false) {
@@ -129,7 +160,7 @@ class AutomaticUpload extends Behavior {
 			}
 
 			$nbMatches = preg_match_all('/{([^}]+)}/', $basePath);
-			// I don't know why they could differ but probably someone will use it someday :-D
+			// I don't know why they could differ but probably someone will do it someday :-D
 			$nbMatches = $nbMatches + preg_match_all('/{([^}]+)}/', $baseUrl);
 			if($nbMatches == 0) {
 				// we can save everything now
@@ -255,32 +286,45 @@ class AutomaticUpload extends Behavior {
 		}
 	}
 
-	public $linearizeCallback;
-	public $delinearizeCallback;
+	public $serializeCallback;
+	public $unserializeCallback;
 
 	public function afterFind() {
 		foreach($this->attributes as $attribute => $config) {
-			$this->unfoldAttribute($attribute);
+			$this->unserializeAttribute($attribute);
 		}
 	}
 
-	protected function prepareAliases($config) {
+	private static $_aliases = [];
+	/**
+	 * Prepare base url / path from aliases
+	 *
+	 * @param string $attribute attribute to be configured
+	 * @param array  $config    attribute / automatic upload config
+	 *
+	 * @return array
+	 * @since  XXX
+	 */
+	protected function prepareAliases($attribute, $config) {
+		if(isset(self::$_aliases[$attribute]) === false) {
 			if(isset($config['basePath']) === true) {
-				$basePath = Yii::getAlias($config['basePath']);
+				$aliasPath = $config['basePath'];
 			} else {
-				$basePath = Yii::getAlias('@webroot');
+				$aliasPath = '@webroot';
 			}
 			if(isset($config['baseUrl']) === true) {
-				$baseUrl = Yii::getAlias($config['baseUrl']);
+				$aliasUrl = $config['baseUrl'];
 			} else {
-				$baseUrl = Yii::getAlias('@web');
+				$aliasUrl = '@web';
 			}
-			if(is_dir($basePath) == false) {
-				if(mkdir($basePath, 0777, true) === false) {
+			if(is_dir(Yii::getAlias($basePath) == false) {
+				if(mkdir(Yii::getAlias($basePath), 0777, true) === false) {
 					throw new Exception('Cannot create target directory');
 				}
 			}
-		return [$basePath, $baseUrl];
+			self::$_aliases[$attribute] = [$aliasPath, $aliasUrl];
+		}
+		return self::$_aliases[$attribute] ;
 	}
 
 	protected function cleanUpProperty($propertyData) {
@@ -294,7 +338,7 @@ class AutomaticUpload extends Behavior {
 
 	public function beforeUpdate() {
 		foreach($this->attributes as $attribute => $config) {
-			list($basePath, $baseUrl) = $this->prepareAliases($config);
+			list($aliasPath, $aliasUrl) = $this->prepareAliases($attribute, $config);
 
 			if(is_array($this->owner->{$attribute}) === false) {
 				$this->owner->{$attribute} = [$this->owner->{$attribute}];
@@ -313,25 +357,25 @@ class AutomaticUpload extends Behavior {
 					if(empty($instance->tempName) === true) {
 						// image was uploaded earlier
 						// we should probably check if image is always available
-						$savedFiles[] = $baseUrl.'/'.$fileName;
+						$savedFiles[] = $aliasUrl.'/'.$fileName;
 					} else {
-						$targetFile = $basePath.DIRECTORY_SEPARATOR.$fileName;
+						$targetFile = Yii::getAlias($aliasPath.'/'.$fileName);
 						if($instance->saveAs($targetFile) === true) {
 							//TODO: saved files must be removed - correct place would be in UploadedFile
-							$savedFiles[] = $baseUrl.'/'.$fileName;
+							$savedFiles[] = $aliasUrl.'/'.$fileName;
 						}
 					}
 				}
 			}
 			$this->owner->{$attribute} = $savedFiles;
-			$this->foldAttribute($attribute);
+			$this->serializeAttribute($attribute);
 		}
 	}
 
 	public function afterUpdate() {
 		// UploadedFile::reset();
 		foreach($this->attributes as $attribute => $config) {
-			$this->unfoldAttribute($attribute);
+			$this->unserializeAttribute($attribute);
 		}
 	}
 
