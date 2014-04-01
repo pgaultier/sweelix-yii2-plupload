@@ -126,7 +126,6 @@ trait Plupload {
 			}
 		}
 
-
 		if($value !== null) {
 			// we must retrieve original data
 			$instances = UploadedFile::getInstancesByName($originalName);

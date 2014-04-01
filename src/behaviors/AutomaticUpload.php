@@ -44,13 +44,43 @@ class AutomaticUpload extends Behavior {
 	public function events() {
 		return [
 			/**/
+			// ActiveRecord::EVENT_INIT => 'afterInit',
 			ActiveRecord::EVENT_AFTER_FIND => 'afterFind',
 			ActiveRecord::EVENT_BEFORE_INSERT => 'beforeInsert',
 			ActiveRecord::EVENT_AFTER_INSERT => 'afterInsert',
 			ActiveRecord::EVENT_BEFORE_UPDATE => 'beforeUpdate',
-			// ActiveRecord::EVENT_AFTER_DELETE => 'afterDelete',
+			ActiveRecord::EVENT_AFTER_UPDATE => 'afterUpdate',
+			ActiveRecord::EVENT_AFTER_DELETE => 'afterDelete',
 			/**/
 		];
+	}
+
+	protected function foldAttribute($attribute) {
+		if($this->isMultifile($attribute) === true) {
+			if(is_callable($this->linearizeCallback) === true) {
+				$this->owner->{$attribute} = call_user_func(array($this, 'linearizeCallback'), $this->owner->{$attribute});
+			} else {
+				$this->owner->{$attribute} = Json::encode($this->owner->{$attribute});
+			}
+		} else {
+			$realData = $this->owner->{$attribute};
+			$this->owner->{$attribute} = array_pop($realData);
+		}
+	}
+
+	protected function unfoldAttribute($attribute) {
+		if(self::isMultifile($attribute) === true) {
+			if(is_callable($this->delinearizeCallback) === true) {
+				$attributeContent = call_user_func(array($this, 'delinearizeCallback'), $this->owner->{$attribute});
+			} else {
+				$attributeContent = Json::decode($this->owner->{$attribute});
+			}
+
+			if(is_array($attributeContent) === false) {
+				$attributeContent = [$attributeContent];
+			}
+			$this->owner->{$attribute} = $attributeContent;
+		}
 	}
 
 	public static function sanitize($name) {
@@ -228,49 +258,13 @@ class AutomaticUpload extends Behavior {
 	public $linearizeCallback;
 	public $delinearizeCallback;
 
-	/**
-	 * Convert array to string
-	 *
-	 * @param  array $files list of files to linearize
-	 *
-	 * @return string
-	 * @since  XXX
-	 */
-	protected function linearize($files) {
-		return Json::encode($files);
-	}
-
-	/**
-	 * Convert string to array
-	 *
-	 * @param  string $linearizedFiles list of files to delinearize
-	 *
-	 * @return array
-	 * @since  XXX
-	 */
-	protected function delinearize($linearizedFiles) {
-		return Json::decode($linearizedFiles);
-	}
-
 	public function afterFind() {
 		foreach($this->attributes as $attribute => $config) {
-			if(self::isMultifile($attribute) === true) {
-				if(is_callable($this->delinearizeCallback) === true) {
-					$attributeContent = call_user_func(array($this, 'delinearizeCallback'), $this->owner->{$attribute});
-				} else {
-					$attributeContent = call_user_func(array($this, 'delinearize'), $this->owner->{$attribute});
-				}
-
-				if(is_array($attributeContent) === false) {
-					$attributeContent = [$attributeContent];
-				}
-				$this->owner->{$attribute} = $attributeContent;
-			}
+			$this->unfoldAttribute($attribute);
 		}
 	}
 
-	public function beforeUpdate() {
-		foreach($this->attributes as $attribute => $config) {
+	protected function prepareAliases($config) {
 			if(isset($config['basePath']) === true) {
 				$basePath = Yii::getAlias($config['basePath']);
 			} else {
@@ -286,29 +280,41 @@ class AutomaticUpload extends Behavior {
 					throw new Exception('Cannot create target directory');
 				}
 			}
+		return [$basePath, $baseUrl];
+	}
 
+	protected function cleanUpProperty($propertyData) {
+		$propertyData = array_map(function($el) {
+			return trim($el);
+		}, $propertyData);
+		return array_filter($propertyData);
+	}
+
+
+
+	public function beforeUpdate() {
+		foreach($this->attributes as $attribute => $config) {
+			list($basePath, $baseUrl) = $this->prepareAliases($config);
 
 			if(is_array($this->owner->{$attribute}) === false) {
 				$this->owner->{$attribute} = [$this->owner->{$attribute}];
 			}
 			// clean up attributes
-			$this->owner->{$attribute} = array_map(function($el) {
-				return trim($el);
-			}, $this->owner->{$attribute});
-			$selectedFiles = array_filter($this->owner->{$attribute});
+			$this->owner->{$attribute} = $this->cleanUpProperty($this->owner->{$attribute});
+			$selectedFiles = $this->owner->{$attribute};
 
 			$savedFiles = [];
 			$attributeName = Html::getInputName($this->owner, $attribute);
 			$uploadedFiles = UploadedFile::getInstancesByName($attributeName);
+
 			foreach($uploadedFiles as $instance) {
 				if(in_array($instance->name, $selectedFiles) === true) {
+					$fileName = static::sanitize($instance->name);
 					if(empty($instance->tempName) === true) {
 						// image was uploaded earlier
 						// we should probably check if image is always available
-						$fileName = static::sanitize($instance->name);
 						$savedFiles[] = $baseUrl.'/'.$fileName;
 					} else {
-						$fileName = static::sanitize($instance->name);
 						$targetFile = $basePath.DIRECTORY_SEPARATOR.$fileName;
 						if($instance->saveAs($targetFile) === true) {
 							//TODO: saved files must be removed - correct place would be in UploadedFile
@@ -317,23 +323,17 @@ class AutomaticUpload extends Behavior {
 					}
 				}
 			}
-			var_dump($savedFiles, $this->isMultifile($attribute));
-			if($this->isMultifile($attribute) === true) {
-				if(is_callable($this->linearizeCallback) === true) {
-					$this->owner->{$attribute} = call_user_func(array($this, 'linearizeCallback'), $savedFiles);
-				} else {
-					$this->owner->{$attribute} = call_user_func(array($this, 'linearize'), $savedFiles);
-				}
-			} else {
-				$this->owner->{$attribute} = array_pop($savedFiles);
-			}
+			$this->owner->{$attribute} = $savedFiles;
+			$this->foldAttribute($attribute);
 		}
 	}
 
 	public function afterUpdate() {
-		$this->afterFind();
+		// UploadedFile::reset();
+		foreach($this->attributes as $attribute => $config) {
+			$this->unfoldAttribute($attribute);
+		}
 	}
-
 
 	public function isAutomatic($attribute) {
 		return array_key_exists($attribute, $this->attributes);

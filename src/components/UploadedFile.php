@@ -153,6 +153,7 @@ class UploadedFile extends BaseUploadedFile {
 			]);
 		}
 	}
+
 	/**
 	 * Saves the uploaded file.
 	 * Note that this method uses php's move_uploaded_file() method. If the target file `$file`
@@ -172,6 +173,11 @@ class UploadedFile extends BaseUploadedFile {
 			if(file_exists($originalFile) === true) {
 				if ($deleteTempFile) {
 					$result = rename($originalFile , $targetFile);
+					if($result === true) {
+						// should be changed as we have saved the file
+						$this->tempName = null;
+						$this->name = pathinfo($file, PATHINFO_BASENAME);
+					}
 				} else {
 					$result = copy($originalFile , $targetFile);
 				}
@@ -179,5 +185,4 @@ class UploadedFile extends BaseUploadedFile {
 		}
 		return $result;
 	}
-
 }
