@@ -7,7 +7,7 @@
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   XXX
+ * @version   1.0.0
  * @link      http://www.sweelix.net
  * @category  actions
  * @package   sweelix.yii2.plupload.actions
@@ -29,11 +29,11 @@ use Exception;
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   XXX
+ * @version   1.0.0
  * @link      http://www.sweelix.net
  * @category  actions
  * @package   sweelix.yii2.plupload.actions
- * @since     XXX
+ * @since     1.0.0
  */
 class PreviewFile extends Action {
 	public $width = 100;
@@ -44,7 +44,7 @@ class PreviewFile extends Action {
 	 * Run the action and perform the preview process
 	 *
 	 * @return void
-	 * @since  XXX
+	 * @since  1.0.0
 	 */
 	public function run($name, $tmp_name=null, $mode=null) {
 		try {
@@ -65,7 +65,7 @@ class PreviewFile extends Action {
 	 * @param string $fileName filename
 	 *
 	 * @return void
-	 * @since  XXX
+	 * @since  1.0.0
 	 */
 	public function generateJson($name, $tempName=null) {
 		try {
@@ -174,7 +174,7 @@ class PreviewFile extends Action {
 	 * @param string $fileName filename
 	 *
 	 * @return void
-	 * @since  XXX
+	 * @since  1.0.0
 	 */
 	public function generateImage($name, $tempName=null) {
 		try {

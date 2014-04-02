@@ -7,7 +7,7 @@
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   XXX
+ * @version   1.0.0
  * @link      http://www.sweelix.net
  * @category  behaviors
  * @package   sweelix.yii2.plupload.behaviors
@@ -29,11 +29,11 @@ use Exception;
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   XXX
+ * @version   1.0.0
  * @link      http://www.sweelix.net
  * @category  behaviors
  * @package   sweelix.yii2.plupload.behaviors
- * @since     XXX
+ * @since     1.0.0
  */
 class AutomaticUpload extends Behavior {
 	/**
@@ -70,7 +70,7 @@ class AutomaticUpload extends Behavior {
 	 * List of tracked events
 	 *
 	 * @return array
-	 * @since  XXX
+	 * @since  1.0.0
 	 */
 	public function events() {
 		return [
@@ -90,7 +90,7 @@ class AutomaticUpload extends Behavior {
 	 * @param string $attribute the attribute name
 	 *
 	 * @return void
-	 * @since  XXX
+	 * @since  1.0.0
 	 */
 	protected function serializeAttribute($attribute) {
 		if($this->isMultifile($attribute) === true) {
@@ -114,7 +114,7 @@ class AutomaticUpload extends Behavior {
 	 * @param string $attribute the attribute name
 	 *
 	 * @return void
-	 * @since  XXX
+	 * @since  1.0.0
 	 */
 	protected function unserializeAttribute($attribute) {
 		if(self::isMultifile($attribute) === true) {
@@ -137,7 +137,7 @@ class AutomaticUpload extends Behavior {
 	 * @param string $name file name to sanitize
 	 *
 	 * @return string
-	 * @since  XXX
+	 * @since  1.0.0
 	 */
 	public static function sanitize($name) {
 		// we can sanitize file a litlle better anyway, this should tdo the trick with all noob users
@@ -158,7 +158,7 @@ class AutomaticUpload extends Behavior {
 	 * @param string  $attribute check if file attribute support multifile
 	 *
 	 * @return boolean
-	 * @since  XXX
+	 * @since  1.0.0
 	 */
 	protected function isMultifile($attribute) {
 		if(isset(self::$_isMultiFile[$attribute]) === false) {
@@ -183,7 +183,7 @@ class AutomaticUpload extends Behavior {
 	 * If not, we delay the file processing on after insert
 	 *
 	 * @return void
-	 * @since  XXX
+	 * @since  1.0.0
 	 */
 	public function beforeInsert() {
 		if($this->modelIsUpdating === false) {
@@ -207,7 +207,7 @@ class AutomaticUpload extends Behavior {
 	 * Perform file save after insert if we need to recompute the path
 	 *
 	 * @return void
-	 * @since  XXX
+	 * @since  1.0.0
 	 */
 	public function afterInsert() {
 		if($this->modelIsUpdating === false) {
@@ -234,7 +234,7 @@ class AutomaticUpload extends Behavior {
 	 * Unserialize attributes
 	 *
 	 * @return void
-	 * @since  XXX
+	 * @since  1.0.0
 	 */
 	public function afterFind() {
 		foreach($this->attributes as $attribute => $config) {
@@ -248,7 +248,7 @@ class AutomaticUpload extends Behavior {
 	 * @param array $propertyData property files
 	 *
 	 * @return array
-	 * @since  XXX
+	 * @since  1.0.0
 	 */
 	protected function cleanUpProperty($propertyData) {
 		$propertyData = array_map(function($el) {
@@ -261,7 +261,7 @@ class AutomaticUpload extends Behavior {
 	 * Like insert but we will never need to recompute the key
 	 *
 	 * @return void
-	 * @since  XXX
+	 * @since  1.0.0
 	 */
 	public function beforeUpdate() {
 		if($this->modelIsUpdating === false) {
@@ -311,7 +311,7 @@ class AutomaticUpload extends Behavior {
 	 * Should only reset attributes as expected
 	 *
 	 * @return void
-	 * @since  XXX
+	 * @since  1.0.0
 	 */
 	public function afterUpdate() {
 		// UploadedFile::reset();
@@ -328,7 +328,7 @@ class AutomaticUpload extends Behavior {
 	 * @param string $attribute attribute to check
 	 *
 	 * @return boolean
-	 * @since  XXX
+	 * @since  1.0.0
 	 */
 	public function isAutomatic($attribute) {
 		return array_key_exists($attribute, $this->attributes);
@@ -341,7 +341,7 @@ class AutomaticUpload extends Behavior {
 	 * @param boolean $expanded  should we expand parameters if they are used in the path
 	 *
 	 * @return mixed
-	 * @since  XXX
+	 * @since  1.0.0
 	 */
 	public function getAsFilePath($attribute, $expanded=false) {
 		if(($this->isMultifile($attribute) === true) && (is_array($this->owner->{$attribute}) === true) && (empty($this->owner->{$attribute}) === false)) {
@@ -362,7 +362,7 @@ class AutomaticUpload extends Behavior {
 	 * @param boolean $expanded  should we expand parameters if they are used in the url
 	 *
 	 * @return mixed
-	 * @since  XXX
+	 * @since  1.0.0
 	 */
 	public function getAsFileUrl($attribute, $expanded=false) {
 		if(($this->isMultifile($attribute) === true) && (is_array($this->owner->{$attribute}) === true)) {
@@ -383,7 +383,7 @@ class AutomaticUpload extends Behavior {
 	 * @param boolean $expand    should we expand the alias path with model values
 	 *
 	 * @return string
-	 * @since  XXX
+	 * @since  1.0.0
 	 */
 	public function getAliasPath($attribute, $expand=false) {
 		if(isset($this->attributes[$attribute]['basePath']) === true) {
@@ -406,7 +406,7 @@ class AutomaticUpload extends Behavior {
 	 * @param string $attribute attribute to check
 	 *
 	 * @return boolean
-	 * @since  XXX
+	 * @since  1.0.0
 	 */
 	public function shouldExpandAliasPath($attribute) {
 		$aliasPath = $this->getAliasPath($attribute);
@@ -419,7 +419,7 @@ class AutomaticUpload extends Behavior {
 	 * @param string $attribute attribute to check
 	 *
 	 * @return mixed
-	 * @since  XXX
+	 * @since  1.0.0
 	 */
 	public function getAliasPathExpansionVars($attribute) {
 		$expansionVars = [];
@@ -442,7 +442,7 @@ class AutomaticUpload extends Behavior {
 	 * @param boolean $expand    should we expand the alias url with model values
 	 *
 	 * @return string
-	 * @since  XXX
+	 * @since  1.0.0
 	 */
 	public function getAliasUrl($attribute, $expand=false) {
 		if(isset($this->attributes[$attribute]['baseUrl']) === true) {
@@ -465,7 +465,7 @@ class AutomaticUpload extends Behavior {
 	 * @param string $attribute attribute to check
 	 *
 	 * @return boolean
-	 * @since  XXX
+	 * @since  1.0.0
 	 */
 	public function shouldExpandAliasUrl($attribute) {
 		$aliasUrl = $this->getAliasUrl($attribute);
@@ -478,7 +478,7 @@ class AutomaticUpload extends Behavior {
 	 * @param string $attribute attribute to check
 	 *
 	 * @return mixed
-	 * @since  XXX
+	 * @since  1.0.0
 	 */
 	public function getAliasUrlExpansionVars($attribute) {
 		$expansionVars = [];

@@ -7,7 +7,7 @@
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   XXX
+ * @version   1.0.0
  * @link      http://www.sweelix.net
  * @category  actions
  * @package   sweelix.yii2.plupload.actions
@@ -26,18 +26,18 @@ use Exception;
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   XXX
+ * @version   1.0.0
  * @link      http://www.sweelix.net
  * @category  actions
  * @package   sweelix.yii2.plupload.actions
- * @since     XXX
+ * @since     1.0.0
  */
 class DeleteFile extends Action {
 	/**
 	 * Run the action and perform the delete process
 	 *
 	 * @return void
-	 * @since  XXX
+	 * @since  1.0.0
 	 */
 	public function run() {
 		try {
