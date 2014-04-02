@@ -41,6 +41,20 @@ use Yii;
  */
 trait Plupload {
 
+	/**
+	 * Create the upload field
+	 * The $options['config']['ui'] can be :
+	 *  * false // no ui
+	 *  * true  // basic ui
+	 *  * Javascript object (passed in Jsexpression). Everything is handled by the developper
+	 *
+	 * @param Model  $model     model which handle the file upload
+	 * @param string $attribute the file attribute
+	 * @param array  $options   @see static::input()
+	 *
+	 * @return string
+	 * @since  XXX
+	 */
 	public static function activeAsyncInput($model, $attribute, $options = []) {
 		$name = isset($options['name']) ? $options['name'] : static::getInputName($model, $attribute);
 		$value = isset($options['value']) ? $options['value'] : static::getAttributeValue($model, $attribute);
@@ -84,6 +98,10 @@ trait Plupload {
 	/**
 	 * Create an asynchronous file upload.
 	 * Plupload specific configuration should be set in $options['config']
+	 * The $options['config']['ui'] can be :
+	 *  * false // no ui
+	 *  * true  // basic ui
+	 *  * Javascript object (passed in Jsexpression). Everything is handled by the developper
 	 *
 	 * @param  string       $name    name of the input (append [] for multifile upload)
 	 * @param  string|array $value   the file(s) already uploaded (array for multifile upload)
@@ -166,6 +184,16 @@ trait Plupload {
 		return static::renderAsyncInput($value, $options, $config);
 	}
 
+	/**
+	 * Build the input file and render it
+	 *
+	 * @param mixed $values  uploaded / files
+	 * @param array $options input options
+	 * @param array $config  specific plupload config
+	 *
+	 * @return string
+	 * @since  XXX
+	 */
 	protected static function renderAsyncInput($values, $options, $config) {
 		if(is_array($values) == true) {
 			$uploadedFiles = null;
