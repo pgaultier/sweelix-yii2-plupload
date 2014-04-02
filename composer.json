@@ -1,15 +1,16 @@
 {
 	"name" : "sweelix/yii2-plupload",
-	"description" : "PHP 5.4+ Sweelix extensions for Yii 2",
+	"description" : "PHP 5.4+ Sweelix Yii2 plupload extension - easy asynchronous file uploads",
 	"type": "yii2-extension",
-	"keywords" : [ "behaviors", "yii", "filters" ],
+	"keywords" : [ "behaviors", "yii", "plupload", "file", "asynchronous" ],
 	"license" : "BSD-3-Clause",
 	"authors" : [ {
 	"name" : "Philippe Gaultier",
 		"email" : "pgaultier@sweelix.net"
 	} ],
 	"require" : {
-		"sweelix/yii2-image":"*"
+		"sweelix/yii2-image":"*",
+		"sweelix/plupload":"*"
 	},
 	"autoload" : {
 		"psr-4" : {
