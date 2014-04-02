@@ -92,7 +92,7 @@ class AutomaticUpload extends Behavior {
 				$attributeContent = Json::decode($this->owner->{$attribute});
 			}
 
-			if(is_array($attributeContent) === false) {
+			if((is_array($attributeContent) === false) && (empty($attributeContent) === false)) {
 				$attributeContent = [$attributeContent];
 			}
 			$this->owner->{$attribute} = $attributeContent;
@@ -317,8 +317,8 @@ class AutomaticUpload extends Behavior {
 			} else {
 				$aliasUrl = '@web';
 			}
-			if(is_dir(Yii::getAlias($basePath) == false) {
-				if(mkdir(Yii::getAlias($basePath), 0777, true) === false) {
+			if(is_dir(Yii::getAlias($aliasPath)) == false) {
+				if(mkdir(Yii::getAlias($aliasPath), 0777, true) === false) {
 					throw new Exception('Cannot create target directory');
 				}
 			}
@@ -357,12 +357,12 @@ class AutomaticUpload extends Behavior {
 					if(empty($instance->tempName) === true) {
 						// image was uploaded earlier
 						// we should probably check if image is always available
-						$savedFiles[] = $aliasUrl.'/'.$fileName;
+						$savedFiles[] = $fileName;
 					} else {
 						$targetFile = Yii::getAlias($aliasPath.'/'.$fileName);
 						if($instance->saveAs($targetFile) === true) {
 							//TODO: saved files must be removed - correct place would be in UploadedFile
-							$savedFiles[] = $aliasUrl.'/'.$fileName;
+							$savedFiles[] = $fileName;
 						}
 					}
 				}
@@ -383,14 +383,55 @@ class AutomaticUpload extends Behavior {
 		return array_key_exists($attribute, $this->attributes);
 	}
 
-	public function getBasePath($attribute) {
+	public function getAsFilePath($attribute) {
+		if(($this->isMultifile($attribute) === true) && (is_array($this->owner->{$attribute}) === true) && (empty($this->owner->{$attribute}) === false)) {
+			return array_map(function($el) use ($attribute) {
+				return Yii::getAlias($this->getAliasPath($attribute).'/'.$el);
+			}, $this->owner->{$attribute});
+		} elseif(empty($this->owner->{$attribute}) === false) {
+			return Yii::getAlias($this->getAliasPath($attribute).'/'.$this->owner->{$attribute});
+		} else {
+			return null;
+		}
+	}
+
+	public function getAsFileUrl($attribute) {
+		if(($this->isMultifile($attribute) === true) && (is_array($this->owner->{$attribute}) === true)) {
+			return array_map(function($el) use ($attribute) {
+				return Yii::getAlias($this->getAliasUrl($attribute).'/'.$el);
+			}, $this->owner->{$attribute});
+		} elseif(empty($this->owner->{$attribute}) === false) {
+			return Yii::getAlias($this->getAliasUrl($attribute).'/'.$this->owner->{$attribute});
+		} else {
+			return null;
+		}
+	}
+
+	/**
+	 * Get Alias path for selectd attribute
+	 *
+	 * @param  string $attribute name of selected attribute
+	 *
+	 * @return string
+	 * @since  XXX
+	 */
+	public function getAliasPath($attribute) {
 		if(isset($this->attributes[$attribute]['basePath']) === true) {
 			return $this->attributes[$attribute]['basePath'];
 		} else {
 			return null;
 		}
 	}
-	public function getBaseUrl($attribute) {
+
+	/**
+	 * Get Alias URL for selectd attribute
+	 *
+	 * @param  string $attribute name of selected attribute
+	 *
+	 * @return string
+	 * @since  XXX
+	 */
+	public function getAliasUrl($attribute) {
 		if(isset($this->attributes[$attribute]['baseUrl']) === true) {
 			return $this->attributes[$attribute]['baseUrl'];
 		} else {

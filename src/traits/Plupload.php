@@ -46,8 +46,8 @@ trait Plupload {
 		$value = isset($options['value']) ? $options['value'] : static::getAttributeValue($model, $attribute);
 		// handled by AutomaticUpload otherwise targetPathAlias must be set manually
 		if($model->hasMethod('isAutomatic') === true) {
-			if(($model->isAutomatic($attribute) === true) && ($model->getBasePath($attribute) !== null)) {
-				$options['config']['targetPathAlias'] = $model->getBasePath($attribute);
+			if(($model->isAutomatic($attribute) === true) && ($model->getAliasPath($attribute) !== null)) {
+				$options['config']['targetPathAlias'] = $model->getAliasPath($attribute);
 			}
 		}
 		$filters = [];
