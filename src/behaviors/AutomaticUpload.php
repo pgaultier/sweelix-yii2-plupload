@@ -36,14 +36,44 @@ use Exception;
  * @since     XXX
  */
 class AutomaticUpload extends Behavior {
+	/**
+	 * @var array handled attributes
+	 */
 	public $attributes=[];
 
+	/**
+	 * @var string define locale for sanitize (it would probably be better to use Yii::$app locale)
+	 */
 	public static $sanitizeLocale = 'fr_FR.UTF8';
 
-	protected $shouldResaveFileWithArgs = false;
+	/**
+	 * @var callable function used to serialize attributes. default to json
+	 */
+	public $serializeCallback;
+
+	/**
+	 * @var callable function used to unserialize attributes. default to json
+	 */
+	public $unserializeCallback;
+
+	/**
+	 * @var boolean check if we must wayt for afterInsert to save the files
+	 */
+	protected $modelShouldBeSaved = false;
+
+	/**
+	 * @var boolean check if we are "re-saving" data in afterSave (when we recompute the path)
+	 */
+	protected $modelIsUpdating = false;
+
+	/**
+	 * List of tracked events
+	 *
+	 * @return array
+	 * @since  XXX
+	 */
 	public function events() {
 		return [
-			/**/
 			// ActiveRecord::EVENT_INIT => 'afterInit',
 			ActiveRecord::EVENT_AFTER_FIND => 'afterFind',
 			ActiveRecord::EVENT_BEFORE_INSERT => 'beforeInsert',
@@ -51,14 +81,13 @@ class AutomaticUpload extends Behavior {
 			ActiveRecord::EVENT_BEFORE_UPDATE => 'beforeUpdate',
 			ActiveRecord::EVENT_AFTER_UPDATE => 'afterUpdate',
 			ActiveRecord::EVENT_AFTER_DELETE => 'afterDelete',
-			/**/
 		];
 	}
 
 	/**
 	 * Serialize file attribute when multifile upload is active
 	 *
-	 * @param  string $attribute the attribute name
+	 * @param string $attribute the attribute name
 	 *
 	 * @return void
 	 * @since  XXX
@@ -79,7 +108,7 @@ class AutomaticUpload extends Behavior {
 	/**
 	 * Unserialize file attribute when multifile upload is active
 	 *
-	 * @param  string $attribute the attribute name
+	 * @param string $attribute the attribute name
 	 *
 	 * @return void
 	 * @since  XXX
@@ -102,7 +131,7 @@ class AutomaticUpload extends Behavior {
 	/**
 	 * Clean up file name
 	 *
-	 * @param  string $name file name to sanitize
+	 * @param string $name file name to sanitize
 	 *
 	 * @return string
 	 * @since  XXX
@@ -123,7 +152,7 @@ class AutomaticUpload extends Behavior {
 	/**
 	 * Check if current attribute
 	 *
-	 * @param  string  $attribute check if file attribute support multifile
+	 * @param string  $attribute check if file attribute support multifile
 	 *
 	 * @return boolean
 	 * @since  XXX
@@ -146,187 +175,78 @@ class AutomaticUpload extends Behavior {
 		return self::$_isMultiFile[$attribute];
 	}
 
+	/**
+	 * Perform file save before insert if we can
+	 * If not, we delay the file processing on after insert
+	 *
+	 * @return void
+	 * @since  XXX
+	 */
 	public function beforeInsert() {
-		foreach($this->attributes as $attribute => $config) {
-			if(isset($config['basePath']) === true) {
-				$basePath = Yii::getAlias($config['basePath']);
-			} else {
-				$basePath = Yii::getAlias('@webroot');
+		if($this->modelIsUpdating === false) {
+			foreach($this->attributes as $attribute => $config) {
+				if($this->shouldExpandAliasPath($attribute) === true) {
+					$this->modelShouldBeSaved = true;
+					break;
+				}
 			}
-			if(isset($config['baseUrl']) === true) {
-				$baseUrl = Yii::getAlias($config['baseUrl']);
+			if($this->modelShouldBeSaved === false) {
+				$this->beforeUpdate();
 			} else {
-				$baseUrl = Yii::getAlias('@web');
-			}
-
-			$nbMatches = preg_match_all('/{([^}]+)}/', $basePath);
-			// I don't know why they could differ but probably someone will do it someday :-D
-			$nbMatches = $nbMatches + preg_match_all('/{([^}]+)}/', $baseUrl);
-			if($nbMatches == 0) {
-				// we can save everything now
-				if(is_dir($basePath) == false) {
-					if(mkdir($basePath, 0777, true) === false) {
-						throw new Exception('Cannot create target directory');
-					}
+				foreach($this->attributes as $attribute => $config) {
+					$this->serializeAttribute($attribute);
 				}
-				$attributeName = Html::getInputName($this->owner, $attribute);
-
-
-				$uploadedFiles = UploadedFile::getInstancesByName($attributeName);
-
-				$fileNames = $this->owner->{$attribute};
-
-				if($this->isMultifile($attribute) === true) {
-					if(is_array($fileNames) === true) {
-						$selectedFiles = $fileNames ;
-					} else {
-						$selectedFiles = [(string)$fileNames];
-					}
-				} else {
-					$selectedFiles = [(string)$this->{$attribute}];
-				}
-
-				$selectedFiles = array_map(function($el) {
-					return trim($el);
-				}, $selectedFiles);
-				$savedFiles = [];
-				foreach($uploadedFiles as $instance) {
-					if(in_array($instance->name, $selectedFiles) === true) {
-						$fileName = static::sanitize($instance->name);
-						$targetFile = $basePath.DIRECTORY_SEPARATOR.$fileName;
-						if($instance->saveAs($targetFile)) {
-							$savedFiles[] = $baseUrl.'/'.$fileName;
-						}
-					}
-				}
-				if($this->isMultifile($attribute) === true) {
-					$this->owner->{$attribute} = $savedFiles;
-				} else {
-					$this->owner->{$attribute} = array_pop($savedFiles);
-				}
-			} else {
-				$this->shouldResaveFileWithArgs[$attribute] = true;
 			}
 		}
 	}
 
+	/**
+	 * Perform file save after insert if we need to recompute the path
+	 *
+	 * @return void
+	 * @since  XXX
+	 */
 	public function afterInsert() {
-		if(is_array($this->shouldResaveFileWithArgs) === true) {
-			$updatedList = [];
-			foreach($this->shouldResaveFileWithArgs as $attribute => $status) {
-				if($status === true) {
-					$config = $this->attributes[$attribute];
-					if(isset($config['basePath']) === true) {
-						$basePath = Yii::getAlias($config['basePath']);
-					} else {
-						$basePath = Yii::getAlias('@webroot');
-					}
-					if(isset($config['baseUrl']) === true) {
-						$baseUrl = Yii::getAlias($config['baseUrl']);
-					} else {
-						$baseUrl = Yii::getAlias('@web');
-					}
-					$attributesToExpand = [];
-					$nbMatches = preg_match_all('/{([^}]+)}/', $basePath, $matches);
-					if($nbMatches > 0) {
-						foreach($matches[1] as $expandAttribute) {
-							$attributesToExpand['{'.$expandAttribute.'}'] = $this->owner->{$expandAttribute};
-						}
-					}
-					$nbMatches = preg_match_all('/{([^}]+)}/', $baseUrl, $matches);
-					if($nbMatches > 0) {
-						foreach($matches[1] as $expandAttribute) {
-							$attributesToExpand['{'.$expandAttribute.'}'] = $this->owner->{$expandAttribute};
-						}
-					}
-					$search = array_keys($attributesToExpand);
-					$replace = array_values($attributesToExpand);
+		if($this->modelIsUpdating === false) {
+			if($this->modelShouldBeSaved === true) {
+				// avoid to save everything twice
+				$this->modelShouldBeSaved = false;
 
-					$basePath = str_replace($search, $replace, $basePath);
-					$baseUrl = str_replace($search, $replace, $baseUrl);
-
-					if(is_dir($basePath) == false) {
-						if(mkdir($basePath, 0777, true) === false) {
-							throw new Exception('Cannot create target directory');
-						}
-					}
-
-
-					$attributeName = Html::getInputName($this->owner, $attribute);
-
-					$uploadedFiles = UploadedFile::getInstancesByName($attributeName);
-
-					$fileNames = $this->owner->{$attribute};
-					$selectedFiles = preg_split('/[,]+/', $fileNames, -1, PREG_SPLIT_NO_EMPTY);
-					$selectedFiles = array_map(function($el) {
-						return trim($el);
-					}, $selectedFiles);
-					$savedFiles = [];
-					foreach($uploadedFiles as $instance) {
-						if(in_array($instance->name, $selectedFiles) === true) {
-
-							$fileName = static::sanitize($instance->name);
-							$targetFile = $basePath.DIRECTORY_SEPARATOR.$fileName;
-							if($instance->saveAs($targetFile)) {
-								$targetUrl = $baseUrl.'/'.$fileName;
-								$savedFiles[] = $targetUrl;
-							}
-						}
-					}
-					$updatedList[$attribute] = $this->owner->{$attribute} = implode(',', $savedFiles);;
+				foreach($this->attributes as $attribute => $config) {
+					$this->unserializeAttribute($attribute);
 				}
-			}
-			if(empty($updatedList) === false) {
-				// we cannot edit the model, we must reload it and resave
-				$model = $this->owner;
-				$class = $mode::className();
-				$target = $class::find($this->owner->getPrimaryKey());
-				$target->updateAttributes($updatedList);
+				$this->beforeUpdate();
+				$attributes = array_keys($this->attributes);
+				$this->modelIsUpdating = true;
+				$this->owner->updateAttributes($attributes);
+				$this->modelIsUpdating = false;
+				foreach($this->attributes as $attribute => $config) {
+					$this->unserializeAttribute($attribute);
+				}
 			}
 		}
 	}
 
-	public $serializeCallback;
-	public $unserializeCallback;
-
+	/**
+	 * Unserialize attributes
+	 *
+	 * @return void
+	 * @since  XXX
+	 */
 	public function afterFind() {
 		foreach($this->attributes as $attribute => $config) {
 			$this->unserializeAttribute($attribute);
 		}
 	}
 
-	private static $_aliases = [];
 	/**
-	 * Prepare base url / path from aliases
+	 * Remove useless data from the properties and return a clean array
 	 *
-	 * @param string $attribute attribute to be configured
-	 * @param array  $config    attribute / automatic upload config
+	 * @param array $propertyData property files
 	 *
 	 * @return array
 	 * @since  XXX
 	 */
-	protected function prepareAliases($attribute, $config) {
-		if(isset(self::$_aliases[$attribute]) === false) {
-			if(isset($config['basePath']) === true) {
-				$aliasPath = $config['basePath'];
-			} else {
-				$aliasPath = '@webroot';
-			}
-			if(isset($config['baseUrl']) === true) {
-				$aliasUrl = $config['baseUrl'];
-			} else {
-				$aliasUrl = '@web';
-			}
-			if(is_dir(Yii::getAlias($aliasPath)) == false) {
-				if(mkdir(Yii::getAlias($aliasPath), 0777, true) === false) {
-					throw new Exception('Cannot create target directory');
-				}
-			}
-			self::$_aliases[$attribute] = [$aliasPath, $aliasUrl];
-		}
-		return self::$_aliases[$attribute] ;
-	}
-
 	protected function cleanUpProperty($propertyData) {
 		$propertyData = array_map(function($el) {
 			return trim($el);
@@ -334,108 +254,240 @@ class AutomaticUpload extends Behavior {
 		return array_filter($propertyData);
 	}
 
-
-
+	/**
+	 * Like insert but we will never need to recompute the key
+	 *
+	 * @return void
+	 * @since  XXX
+	 */
 	public function beforeUpdate() {
-		foreach($this->attributes as $attribute => $config) {
-			list($aliasPath, $aliasUrl) = $this->prepareAliases($attribute, $config);
+		if($this->modelIsUpdating === false) {
+			foreach($this->attributes as $attribute => $config) {
+				$aliasPath = $this->getAliasPath($attribute, true);
 
-			if(is_array($this->owner->{$attribute}) === false) {
-				$this->owner->{$attribute} = [$this->owner->{$attribute}];
-			}
-			// clean up attributes
-			$this->owner->{$attribute} = $this->cleanUpProperty($this->owner->{$attribute});
-			$selectedFiles = $this->owner->{$attribute};
+				if(is_array($this->owner->{$attribute}) === false) {
+					$this->owner->{$attribute} = [$this->owner->{$attribute}];
+				}
+				// clean up attributes
+				$this->owner->{$attribute} = $this->cleanUpProperty($this->owner->{$attribute});
+				$selectedFiles = $this->owner->{$attribute};
 
-			$savedFiles = [];
-			$attributeName = Html::getInputName($this->owner, $attribute);
-			$uploadedFiles = UploadedFile::getInstancesByName($attributeName);
+				$savedFiles = [];
+				$attributeName = Html::getInputName($this->owner, $attribute);
+				$uploadedFiles = UploadedFile::getInstancesByName($attributeName);
 
-			foreach($uploadedFiles as $instance) {
-				if(in_array($instance->name, $selectedFiles) === true) {
-					$fileName = static::sanitize($instance->name);
-					if(empty($instance->tempName) === true) {
-						// image was uploaded earlier
-						// we should probably check if image is always available
-						$savedFiles[] = $fileName;
-					} else {
-						$targetFile = Yii::getAlias($aliasPath.'/'.$fileName);
-						if($instance->saveAs($targetFile) === true) {
-							//TODO: saved files must be removed - correct place would be in UploadedFile
+				foreach($uploadedFiles as $instance) {
+					if(in_array($instance->name, $selectedFiles) === true) {
+						$fileName = static::sanitize($instance->name);
+						if(empty($instance->tempName) === true) {
+							// image was uploaded earlier
+							// we should probably check if image is always available
 							$savedFiles[] = $fileName;
+						} else {
+							$targetFile = Yii::getAlias($aliasPath.'/'.$fileName);
+							$targetPath = pathinfo($targetFile, PATHINFO_DIRNAME);
+							if(is_dir($targetPath) === false) {
+								if(mkdir($targetPath, 0755, true) === false) {
+									throw new Exception('Unable to create path : "'.$targetPath.'"');
+								}
+							}
+							if($instance->saveAs($targetFile) === true) {
+								//TODO: saved files must be removed - correct place would be in UploadedFile
+								$savedFiles[] = $fileName;
+							}
 						}
 					}
 				}
+				$this->owner->{$attribute} = $savedFiles;
+				$this->serializeAttribute($attribute);
 			}
-			$this->owner->{$attribute} = $savedFiles;
-			$this->serializeAttribute($attribute);
 		}
 	}
 
+	/**
+	 * Should only reset attributes as expected
+	 *
+	 * @return void
+	 * @since  XXX
+	 */
 	public function afterUpdate() {
 		// UploadedFile::reset();
-		foreach($this->attributes as $attribute => $config) {
-			$this->unserializeAttribute($attribute);
+		if($this->modelIsUpdating === false) {
+			foreach($this->attributes as $attribute => $config) {
+				$this->unserializeAttribute($attribute);
+			}
 		}
 	}
 
+	/**
+	 * Check if attibute is handled automagically
+	 *
+	 * @param string $attribute attribute to check
+	 *
+	 * @return boolean
+	 * @since  XXX
+	 */
 	public function isAutomatic($attribute) {
 		return array_key_exists($attribute, $this->attributes);
 	}
 
-	public function getAsFilePath($attribute) {
+	/**
+	 * Return current file(s) attribute with the(ir) full path
+	 *
+	 * @param string  $attribute attribute to retrieve
+	 * @param boolean $expanded  should we expand parameters if they are used in the path
+	 *
+	 * @return mixed
+	 * @since  XXX
+	 */
+	public function getAsFilePath($attribute, $expanded=false) {
 		if(($this->isMultifile($attribute) === true) && (is_array($this->owner->{$attribute}) === true) && (empty($this->owner->{$attribute}) === false)) {
-			return array_map(function($el) use ($attribute) {
-				return Yii::getAlias($this->getAliasPath($attribute).'/'.$el);
+			return array_map(function($el) use ($attribute, $expanded) {
+				return Yii::getAlias($this->getAliasPath($attribute, $expanded).'/'.$el);
 			}, $this->owner->{$attribute});
 		} elseif(empty($this->owner->{$attribute}) === false) {
-			return Yii::getAlias($this->getAliasPath($attribute).'/'.$this->owner->{$attribute});
+			return Yii::getAlias($this->getAliasPath($attribute, $expanded).'/'.$this->owner->{$attribute});
 		} else {
 			return null;
 		}
 	}
 
-	public function getAsFileUrl($attribute) {
+	/**
+	 * Return current file(s) attribute with the(ir) full url
+	 *
+	 * @param string  $attribute attribute to retrieve
+	 * @param boolean $expanded  should we expand parameters if they are used in the url
+	 *
+	 * @return mixed
+	 * @since  XXX
+	 */
+	public function getAsFileUrl($attribute, $expanded=false) {
 		if(($this->isMultifile($attribute) === true) && (is_array($this->owner->{$attribute}) === true)) {
-			return array_map(function($el) use ($attribute) {
-				return Yii::getAlias($this->getAliasUrl($attribute).'/'.$el);
+			return array_map(function($el) use ($attribute, $expanded) {
+				return Yii::getAlias($this->getAliasUrl($attribute, $expanded).'/'.$el);
 			}, $this->owner->{$attribute});
 		} elseif(empty($this->owner->{$attribute}) === false) {
-			return Yii::getAlias($this->getAliasUrl($attribute).'/'.$this->owner->{$attribute});
+			return Yii::getAlias($this->getAliasUrl($attribute, $expanded).'/'.$this->owner->{$attribute});
 		} else {
 			return null;
 		}
 	}
 
 	/**
-	 * Get Alias path for selectd attribute
+	 * Get Alias path for selected attribute
 	 *
 	 * @param  string $attribute name of selected attribute
+	 * @param boolean $expand    should we expand the alias path with model values
 	 *
 	 * @return string
 	 * @since  XXX
 	 */
-	public function getAliasPath($attribute) {
+	public function getAliasPath($attribute, $expand=false) {
 		if(isset($this->attributes[$attribute]['basePath']) === true) {
-			return $this->attributes[$attribute]['basePath'];
+			$basePath = $this->attributes[$attribute]['basePath'];
+			if($expand === true) {
+				$expansionVars = $this->getAliasPathExpansionVars($attribute);
+				if(empty($expansionVars) === false) {
+					$basePath = str_replace(array_keys($expansionVars), array_values($expansionVars), $basePath);
+				}
+			}
+			return $basePath;
 		} else {
-			return null;
+			return '@webroot';
 		}
 	}
 
 	/**
-	 * Get Alias URL for selectd attribute
+	 * Check if current path should be expanded
 	 *
-	 * @param  string $attribute name of selected attribute
+	 * @param string $attribute attribute to check
+	 *
+	 * @return boolean
+	 * @since  XXX
+	 */
+	public function shouldExpandAliasPath($attribute) {
+		$aliasPath = $this->getAliasPath($attribute);
+		return (preg_match_all('/{([^}]+)}/', $aliasPath)>0);
+	}
+
+	/**
+	 * Get variables used for path expansion
+	 *
+	 * @param string $attribute attribute to check
+	 *
+	 * @return mixed
+	 * @since  XXX
+	 */
+	public function getAliasPathExpansionVars($attribute) {
+		$expansionVars = [];
+		$aliasPath = $this->getAliasPath($attribute);
+		if($aliasPath !== null) {
+			$nbMatches = preg_match_all('/{([^}]+)}/', $aliasPath, $matches);
+			if($nbMatches > 0) {
+				foreach($matches[1] as $expandAttribute) {
+					$expansionVars['{'.$expandAttribute.'}'] = $this->owner->{$expandAttribute};
+				}
+			}
+		}
+		return (empty($expansionVars) === true)?null:$expansionVars;
+	}
+
+	/**
+	 * Get Alias URL for selected attribute
+	 *
+	 * @param string  $attribute name of selected attribute
+	 * @param boolean $expand    should we expand the alias url with model values
 	 *
 	 * @return string
 	 * @since  XXX
 	 */
-	public function getAliasUrl($attribute) {
+	public function getAliasUrl($attribute, $expand=false) {
 		if(isset($this->attributes[$attribute]['baseUrl']) === true) {
-			return $this->attributes[$attribute]['baseUrl'];
+			$baseUrl = $this->attributes[$attribute]['baseUrl'];
+			if($expand === true) {
+				$expansionVars = $this->getAliasUrlExpansionVars($attribute);
+				if(empty($expansionVars) === false) {
+					$baseUrl = str_replace(array_keys($expansionVars), array_values($expansionVars), $baseUrl);
+				}
+			}
+			return $baseUrl;
 		} else {
-			return null;
+			return '@web';
 		}
+	}
+
+	/**
+	 * Check if current URL should be expanded
+	 *
+	 * @param string $attribute attribute to check
+	 *
+	 * @return boolean
+	 * @since  XXX
+	 */
+	public function shouldExpandAliasUrl($attribute) {
+		$aliasUrl = $this->getAliasUrl($attribute);
+		return (preg_match_all('/{([^}]+)}/', $aliasUrl)>0);
+	}
+
+	/**
+	 * Get variables used for URL expansion
+	 *
+	 * @param string $attribute attribute to check
+	 *
+	 * @return mixed
+	 * @since  XXX
+	 */
+	public function getAliasUrlExpansionVars($attribute) {
+		$expansionVars = [];
+		$aliasUrl = $this->getAliasUrl($attribute);
+		if($aliasUrl !== null) {
+			$nbMatches = preg_match_all('/{([^}]+)}/', $aliasUrl, $matches);
+			if($nbMatches > 0) {
+				foreach($matches[1] as $expandAttribute) {
+					$expansionVars['{'.$expandAttribute.'}'] = $this->owner->{$expandAttribute};
+				}
+			}
+		}
+		return (empty($expansionVars) === true)?null:$expansionVars;
 	}
 }

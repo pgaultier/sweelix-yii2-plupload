@@ -95,10 +95,10 @@ class PreviewFile extends Action {
 			*/
 			if($tempFile === false) {
 				$replacement = [];
-				if(preg_match_all('/{([^}]+)}/', Yii::$app->getRequest()->get('targetPathAlias', '@webroot'), $matches) > 0) {
+				if(preg_match_all('/({[^}]+})/', Yii::$app->getRequest()->get('targetPathAlias', '@webroot'), $matches) > 0) {
 					if(isset($matches[1]) === true) {
 						foreach($matches[1] as $repKey) {
-							$replacement['{'.$repKey.'}'] = Yii::$app->getRequest()->get($repKey, '');
+							$replacement[$repKey] = Yii::$app->getRequest()->get($repKey, '');
 							$additionalParameters[$repKey] = Yii::$app->getRequest()->get($repKey, '');
 						}
 						$targetPath = str_replace(array_keys($replacement), array_values($replacement), $targetPath);
@@ -108,7 +108,6 @@ class PreviewFile extends Action {
 			$file = $targetPath.DIRECTORY_SEPARATOR.$fileName;
 			$response = ['status' => false];
 			if(is_file($file) === true) {
-
 				$width = Yii::$app->getRequest()->get('width', $this->width);
 				$height = Yii::$app->getRequest()->get('height', $this->height);
 				$fit = Yii::$app->getRequest()->get('fit', $this->fit);
@@ -194,10 +193,10 @@ class PreviewFile extends Action {
 			}
 			if($tempFile === false) {
 				$replacement = [];
-				if(preg_match_all('/{([^}]+)}/', Yii::$app->getRequest()->get('targetPathAlias', '@webroot'), $matches) > 0) {
+				if(preg_match_all('/({[^}]+})/', Yii::$app->getRequest()->get('targetPathAlias', '@webroot'), $matches) > 0) {
 					if(isset($matches[1]) === true) {
 						foreach($matches[1] as $repKey) {
-							$replacement['{'.$repKey.'}'] = Yii::$app->getRequest()->get($repKey, '');
+							$replacement[$repKey] = Yii::$app->getRequest()->get($repKey, '');
 						}
 						$targetPath = str_replace(array_keys($replacement), array_values($replacement), $targetPath);
 					}

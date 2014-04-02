@@ -48,6 +48,7 @@ trait Plupload {
 		if($model->hasMethod('isAutomatic') === true) {
 			if(($model->isAutomatic($attribute) === true) && ($model->getAliasPath($attribute) !== null)) {
 				$options['config']['targetPathAlias'] = $model->getAliasPath($attribute);
+				$options['config']['additionalParameters'] = $model->getAliasPathExpansionVars($attribute);
 			}
 		}
 		$filters = [];
@@ -257,6 +258,14 @@ trait Plupload {
 		if(isset($options['config']) == true) {
 			if(isset($options['config']['targetPathAlias']) === true) {
 				$config['urlPreview']['targetPathAlias'] = $options['config']['targetPathAlias'];
+			}
+			if(isset($options['config']['additionalParameters']) === true) {
+				if(is_array($options['config']['additionalParameters']) === true) {
+					foreach($options['config']['additionalParameters'] as $key => $value) {
+						$options['config']['urlPreview'][$key] = $value;
+					}
+				}
+				unset($options['config']['additionalParameters']);
 			}
 			if(isset($options['config']['urlPreview']) && is_array($options['config']['urlPreview']) === true) {
 				$options['config']['urlPreview'] = array_merge(
