@@ -7,7 +7,7 @@
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   XXX
+ * @version   1.0.0
  * @link      http://www.sweelix.net
  * @category  traits
  * @package   sweelix.yii2.plupload.traits
@@ -33,11 +33,11 @@ use Yii;
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   XXX
+ * @version   1.0.0
  * @link      http://www.sweelix.net
  * @category  traits
  * @package   sweelix.yii2.plupload.traits
- * @since     XXX
+ * @since     1.0.0
  */
 trait Plupload {
 
@@ -53,7 +53,7 @@ trait Plupload {
 	 * @param array  $options   @see static::input()
 	 *
 	 * @return string
-	 * @since  XXX
+	 * @since  1.0.0
 	 */
 	public static function activeAsyncInput($model, $attribute, $options = []) {
 		$name = isset($options['name']) ? $options['name'] : static::getInputName($model, $attribute);
@@ -108,7 +108,7 @@ trait Plupload {
 	 * @param  array        $options @see static::input()
 	 *
 	 * @return string
-	 * @since  XXX
+	 * @since  1.0.0
 	 */
 	public static function asyncInput($name, $value = null, $options = []) {
 		// prepare data
@@ -192,7 +192,7 @@ trait Plupload {
 	 * @param array $config  specific plupload config
 	 *
 	 * @return string
-	 * @since  XXX
+	 * @since  1.0.0
 	 */
 	protected static function renderAsyncInput($values, $options, $config) {
 		if(is_array($values) == true) {
@@ -253,7 +253,7 @@ trait Plupload {
 	 * @param  array &$options raw option values (plupload specific parts will be removed)
 	 *
 	 * @return array
-	 * @since  XXX
+	 * @since  1.0.0
 	 */
 	protected static function prepareAsyncInput(&$options) {
 		Yii::$app->getSession()->open();

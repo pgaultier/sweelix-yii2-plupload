@@ -7,7 +7,7 @@
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   XXX
+ * @version   1.0.0
  * @link      http://www.sweelix.net
  * @category  components
  * @package   sweelix.yii2.plupload.components
@@ -58,11 +58,11 @@ use Yii;
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   XXX
+ * @version   1.0.0
  * @link      http://www.sweelix.net
  * @category  components
  * @package   sweelix.yii2.plupload.components
- * @since     XXX
+ * @since     1.0.0
  */
 class UploadedFile extends BaseUploadedFile {
 	public static $targetPath='@app/runtime/upload';
@@ -163,7 +163,7 @@ class UploadedFile extends BaseUploadedFile {
 	 * @param boolean $deleteTempFile whether to delete the temporary file after saving.
 	 *
 	 * @return boolean true whether the file is saved successfully
-	 * @since  XXX
+	 * @since  1.0.0
 	 */
 	public function saveAs($file, $deleteTempFile = true) {
 		$result = false;

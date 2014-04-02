@@ -7,7 +7,7 @@
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   XXX
+ * @version   1.0.0
  * @link      http://www.sweelix.net
  * @category  plupload
  * @package   sweelix.yii2.plupload
@@ -22,11 +22,11 @@ use yii\web\AssetBundle;
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   XXX
+ * @version   1.0.0
  * @link      http://www.sweelix.net
  * @category  plupload
  * @package   sweelix.yii2.plupload
- * @since     XXX
+ * @since     1.0.0
  */
 class PluploadAsset extends AssetBundle {
 	public $sourcePath = '@sweelix/yii2/plupload/assets';
