@@ -101,7 +101,10 @@ class AutomaticUpload extends Behavior {
 			}
 		} else {
 			$realData = $this->owner->{$attribute};
-			$this->owner->{$attribute} = array_pop($realData);
+			if(is_array($realData) === true) {
+				$realData = array_pop($realData);
+			}
+			$this->owner->{$attribute} = $realData;
 		}
 	}
 
