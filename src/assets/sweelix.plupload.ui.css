@@ -1,0 +1,62 @@
+.dropZone {
+	display:none;
+	font-size:14px;
+	font-family:Verdana, Arial, Helvetica;
+	border:1px solid #cccccc;
+	border-radius:8px;
+	background-color:#f5f5f5;
+	margin:4px 0;
+	padding:20px 0;
+	text-align:center;
+}
+.hover {
+	background-color:#eef2FF;
+}
+ul.filesContainer {
+	list-style-type : none;
+	font-size:10px;
+	font-family:Verdana, Arial, Helvetica;
+}
+li.fileContainer {
+	display:inline-block;
+	position:relative;
+	border:1px solid #cccccc;
+	border-radius:4px;
+	background-color:#f5f5f5;
+	margin: 10px 14px 2px 1px;
+	text-align:center;
+	padding:4px;
+}
+.fileContainer a.close {
+    display: block;
+	border: 1px solid #666666;
+	position:absolute;
+    right: -10px;
+    top: -8px;
+    width: 15px;
+	height: 15px;
+    text-align: center;
+	color:#666666;
+	background-color:#f5f5f5;
+    border-radius: 6px;
+	text-decoration:none;
+	font-size:12px;
+	opacity:1;
+}
+.fileContainer a.close:hover {
+	color:#333333;
+	background-color:#f0f0f0;
+}
+.fileContainer span {
+	font-size:10px!important;
+}
+.fileContainer .progressBar {
+	background-color:#cccccc;
+	margin:5px 0px;
+	height:2px;
+}
+.fileContainer .progress {
+	height:2px;
+	background-color:#0099ff;
+	width:0%;
+}
