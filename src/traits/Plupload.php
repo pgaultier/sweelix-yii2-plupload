@@ -59,34 +59,53 @@ trait Plupload {
 		$name = isset($options['name']) ? $options['name'] : static::getInputName($model, $attribute);
 		$value = isset($options['value']) ? $options['value'] : static::getAttributeValue($model, $attribute);
 		// handled by AutomaticUpload otherwise targetPathAlias must be set manually
-		if($model->hasMethod('isAutomatic') === true) {
-			if(($model->isAutomatic($attribute) === true) && ($model->getAliasPath($attribute) !== null)) {
+		if(($model->hasMethod('isAutomatic') === true) && ($model->isAutomatic($attribute) === true)) {
+			$filters = [];
+			if($model->getAliasPath($attribute) !== null) {
 				$options['config']['targetPathAlias'] = $model->getAliasPath($attribute);
 				$options['config']['additionalParameters'] = $model->getAliasPathExpansionVars($attribute);
 			}
-		}
-		$filters = [];
-		foreach($model->getActiveValidators($attribute) as $validator) {
-			if($validator instanceof FileValidator) {
-				// we can set all the parameters
-				if(empty($validator->types) === false) {
-					$filters['mime_types'] = [
-						[
-							'title' => Yii::t('sweelix', 'Allowed files'),
-							'extensions' => implode(',', $validator->types),
-						]
-					];
-				}
-				if(($validator->maxSize !== null) && ($validator->maxSize > 0)) {
-					$filters['max_file_size'] = $validator->maxSize;
-				}
-				if($validator->maxFiles > 1) {
-					// multi add brackets
-					$name = $name.'[]';
+			if($model->isMultifile($attribute) === true) {
+				$name = $name.'[]';
+			}
+			if($model->getMaxFileSize($attribute) > 0) {
+				$filters['max_file_size'] = $model->getMaxFileSize($attribute);
+			}
+			$fileTypes = $model->getFileTypes($attribute);
+			if(empty($fileTypes) === false) {
+				$filters['mime_types'] = [
+					[
+						'title' => Yii::t('sweelix', 'Allowed files'),
+						'extensions' => $fileTypes,
+					]
+				];
+			}
+			$options['config']['filters'] = $filters;
+		} else {
+			$filters = [];
+			foreach($model->getActiveValidators($attribute) as $validator) {
+				if($validator instanceof FileValidator) {
+					// we can set all the parameters
+					if(empty($validator->types) === false) {
+						$filters['mime_types'] = [
+							[
+								'title' => Yii::t('sweelix', 'Allowed files'),
+								'extensions' => implode(',', $validator->types),
+							]
+						];
+					}
+					if(($validator->maxSize !== null) && ($validator->maxSize > 0)) {
+						$filters['max_file_size'] = $validator->maxSize;
+					}
+					if($validator->maxFiles > 1) {
+						// multi add brackets
+						$name = $name.'[]';
+					}
 				}
 			}
+			$options['config']['filters'] = $filters;
 		}
-		$options['config']['filters'] = $filters;
+
 		if (!array_key_exists('id', $options)) {
 			$options['id'] = static::getInputId($model, $attribute);
 		}
