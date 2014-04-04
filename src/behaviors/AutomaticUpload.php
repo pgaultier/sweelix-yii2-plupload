@@ -7,7 +7,7 @@
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   1.0.0
+ * @version   1.0.1
  * @link      http://www.sweelix.net
  * @category  behaviors
  * @package   sweelix.yii2.plupload.behaviors
@@ -29,7 +29,7 @@ use Exception;
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   1.0.0
+ * @version   1.0.1
  * @link      http://www.sweelix.net
  * @category  behaviors
  * @package   sweelix.yii2.plupload.behaviors
@@ -148,36 +148,86 @@ class AutomaticUpload extends Behavior {
 	}
 
 	/**
-	 * @var array lazy loaded file information
-	 */
-	private static $_isMultiFile = [];
-
-	/**
-	 * Check if current attribute
+	 * Check if current attribute support multifile
 	 *
-	 * @param string  $attribute check if file attribute support multifile
+	 * @param string $attribute check if file attribute support multifile
 	 *
 	 * @return boolean
 	 * @since  1.0.0
 	 */
-	protected function isMultifile($attribute) {
-		if(isset(self::$_isMultiFile[$attribute]) === false) {
-			self::$_isMultiFile[$attribute] = false;
+	public function isMultifile($attribute) {
+		$config = $this->getValidatorConfig($attribute);
+		return $config['multiFile'];
+	}
+
+	/**
+	 * Get max file size allowed for the attribute
+	 *
+	 * @param string $attribute the source attribute
+	 *
+	 * @return integer
+	 * @since  1.0.1
+	 */
+	public function getMaxFileSize($attribute) {
+		$config = $this->getValidatorConfig($attribute);
+		return (int)$config['maxFileSize'];
+	}
+
+	/**
+	 * Get file type allowed for the attribute
+	 *
+	 * @param string $attribute the source attribute
+	 *
+	 * @return string
+	 * @since  1.0.1
+	 */
+	public function getFileTypes($attribute) {
+		$config = $this->getValidatorConfig($attribute);
+		return $config['allowedTypes'];
+	}
+
+	/**
+	 * @var array lazy loaded file information
+	 */
+	private static $_validatorConfig = [];
+
+	/**
+	 * Retrieve the validator configuration
+	 *
+	 * @param string $attribute attribute which is validated
+	 *
+	 * @return array
+	 * @since  1.0.1
+	 */
+	protected function getValidatorConfig($attribute) {
+		if(isset(self::$_validatorConfig[$attribute]) === false) {
+			self::$_validatorConfig[$attribute] = false;
+			$config = [
+				'multiFile' => false,
+				'maxFileSize' => 0,
+				'allowedTypes' => null,
+			];
 			foreach($this->owner->getActiveValidators($attribute) as $validator) {
 				if($validator instanceof FileValidator) {
 					// we can set all the parameters
 					if($validator->maxFiles > 1) {
 						// multi add brackets
-						self::$_isMultiFile[$attribute] = true;
-						break;
+						$config['multiFile'] = true;
 					}
+					if(empty($validator->types) === false) {
+						$config['allowedTypes'] = implode(',', $validator->types);
+					}
+					if(($validator->maxSize !== null) && ($validator->maxSize > 0)) {
+						$config['maxFileSize'] = $validator->maxSize;
+					}
+					// we should not have multiple file validators for the same file
+					break;
 				}
 			}
-
+			self::$_validatorConfig[$attribute] = $config;
 		}
-		return self::$_isMultiFile[$attribute];
+		return self::$_validatorConfig[$attribute];
 	}
-
 	/**
 	 * Perform file save before insert if we can
 	 * If not, we delay the file processing on after insert
