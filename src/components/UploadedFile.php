@@ -7,7 +7,7 @@
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   1.0.0
+ * @version   1.0.1
  * @link      http://www.sweelix.net
  * @category  components
  * @package   sweelix.yii2.plupload.components
@@ -58,7 +58,7 @@ use Yii;
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   1.0.0
+ * @version   1.0.1
  * @link      http://www.sweelix.net
  * @category  components
  * @package   sweelix.yii2.plupload.components

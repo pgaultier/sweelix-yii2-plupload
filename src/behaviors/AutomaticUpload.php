@@ -7,7 +7,7 @@
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   1.0.0
+ * @version   1.0.1
  * @link      http://www.sweelix.net
  * @category  behaviors
  * @package   sweelix.yii2.plupload.behaviors
@@ -29,7 +29,7 @@ use Exception;
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   1.0.0
+ * @version   1.0.1
  * @link      http://www.sweelix.net
  * @category  behaviors
  * @package   sweelix.yii2.plupload.behaviors
@@ -166,7 +166,7 @@ class AutomaticUpload extends Behavior {
 	 * @param string $attribute the source attribute
 	 *
 	 * @return integer
-	 * @since  XXX
+	 * @since  1.0.1
 	 */
 	public function getMaxFileSize($attribute) {
 		$config = $this->getValidatorConfig($attribute);
@@ -179,7 +179,7 @@ class AutomaticUpload extends Behavior {
 	 * @param string $attribute the source attribute
 	 *
 	 * @return string
-	 * @since  XXX
+	 * @since  1.0.1
 	 */
 	public function getFileTypes($attribute) {
 		$config = $this->getValidatorConfig($attribute);
@@ -197,7 +197,7 @@ class AutomaticUpload extends Behavior {
 	 * @param string $attribute attribute which is validated
 	 *
 	 * @return array
-	 * @since  XXX
+	 * @since  1.0.1
 	 */
 	protected function getValidatorConfig($attribute) {
 		if(isset(self::$_validatorConfig[$attribute]) === false) {
