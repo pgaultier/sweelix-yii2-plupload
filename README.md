@@ -18,9 +18,9 @@ If you use Packagist for installing packages, then you can update your composer.
 
 ``` json
 {
-	"require": {
-		"sweelix/yii2-plupload": "*"
-	}
+    "require": {
+        "sweelix/yii2-plupload": "*"
+    }
 }
 ```
 
@@ -36,9 +36,10 @@ namespace app\components;
 use yii\helpers\Html as BaseHtml;
 use sweelix\yii2\plupload\traits\Plupload;
 
-class Html extends BaseHtml {
-	// adding this trait allow easy access to plupload
-	use Plupload;
+class Html extends BaseHtml 
+{
+    // adding this trait allow easy access to plupload
+    use Plupload;
 }
 ```
 
@@ -59,27 +60,27 @@ use Yii;
  * This is a basic controller
  */
 class SiteController extends Controller {
-	public function actions() {
-		// add upload / preview and delete file management
-		return [
-			'async-upload' => 'sweelix\yii2\plupload\actions\UploadFile',
-			'async-delete' => 'sweelix\yii2\plupload\actions\DeleteFile',
-			'async-preview' => 'sweelix\yii2\plupload\actions\PreviewFile',
-		];
-	}
+    public function actions() {
+        // add upload / preview and delete file management
+        return [
+            'async-upload' => 'sweelix\yii2\plupload\actions\UploadFile',
+            'async-delete' => 'sweelix\yii2\plupload\actions\DeleteFile',
+            'async-preview' => 'sweelix\yii2\plupload\actions\PreviewFile',
+        ];
+    }
 
-	public function actionIndex() {
-		if(isset($_POST['demoUpload']) === true) {
-			$uploads = UploadedFile::getInstancesByName('demoUpload');
-			// retrieve all uploaded files for name demoUpload
-			foreach($uploads as $uploadedFile) {
-				$uploadedFile->saveAs('@webroot/resources/'.$uploadedFile->name);
-			}
-			// ... perform correct redirection
-		}
+    public function actionIndex() {
+        if(isset($_POST['demoUpload']) === true) {
+            $uploads = UploadedFile::getInstancesByName('demoUpload');
+            // retrieve all uploaded files for name demoUpload
+            foreach($uploads as $uploadedFile) {
+                $uploadedFile->saveAs('@webroot/resources/'.$uploadedFile->name);
+            }
+            // ... perform correct redirection
+        }
 
-		$this->render('index');
-	}
+        $this->render('index');
+    }
 }
 ```
 
@@ -90,9 +91,9 @@ The index view file
 // ...
 
 echo Html::asyncInput('demoUpload', isset($_POST['demoUpload'])?$_POST['demoUpload']:null, ['config' => [
-		'ui' => true,
-		'auto' => true,
-	]]); ?>
+        'ui' => true,
+        'auto' => true,
+    ]]); ?>
 
 //...
 
@@ -114,27 +115,27 @@ use Yii;
  * This is a basic controller
  */
 class SiteController extends Controller {
-	public function actions() {
-		// add upload / preview and delete file management
-		return [
-			'async-upload' => 'sweelix\yii2\plupload\actions\UploadFile',
-			'async-delete' => 'sweelix\yii2\plupload\actions\DeleteFile',
-			'async-preview' => 'sweelix\yii2\plupload\actions\PreviewFile',
-		];
-	}
+    public function actions() {
+        // add upload / preview and delete file management
+        return [
+            'async-upload' => 'sweelix\yii2\plupload\actions\UploadFile',
+            'async-delete' => 'sweelix\yii2\plupload\actions\DeleteFile',
+            'async-preview' => 'sweelix\yii2\plupload\actions\PreviewFile',
+        ];
+    }
 
-	public function actionIndex() {
-		if(isset($_POST['demoUpload']) === true) {
-			$uploads = UploadedFile::getInstancesByName('demoUpload');
-			// retrieve all uploaded files for name demoUpload
-			foreach($uploads as $uploadedFile) {
-				$uploadedFile->saveAs('@webroot/resources/'.$uploadedFile->name);
-			}
-			// ... perform correct redirection
-		}
+    public function actionIndex() {
+        if(isset($_POST['demoUpload']) === true) {
+            $uploads = UploadedFile::getInstancesByName('demoUpload');
+            // retrieve all uploaded files for name demoUpload
+            foreach($uploads as $uploadedFile) {
+                $uploadedFile->saveAs('@webroot/resources/'.$uploadedFile->name);
+            }
+            // ... perform correct redirection
+        }
 
-		$this->render('index');
-	}
+        $this->render('index');
+    }
 }
 ```
 
@@ -145,9 +146,9 @@ The index view file, the square brackets here tell plupload to use multifile upl
 // ...
 
 echo Html::asyncInput('demoUpload[]', isset($_POST['demoUpload'])?$_POST['demoUpload']:null, ['config' => [
-		'ui' => true,
-		'auto' => true,
-	]]); ?>
+        'ui' => true,
+        'auto' => true,
+    ]]); ?>
 
 //...
 
@@ -189,25 +190,25 @@ use Yii;
  * Basic active record with uploadId (pkey autoincrement) and uploadFile (text)
  */
 class Upload extends ActiveRecord {
-	public static function tableName() {
-		return '{{uploads}}';
-	}
-	public function rules() {
+    public static function tableName() {
+        return '{{uploads}}';
+    }
+    public function rules() {
 
-		return [
-			// this rule is used to configure plupload :
-			//   * maxFiles trigger multifile upload,
-			//   * types    trigger the plupload filters
-			//   * maxSize  trigger the maxFileSize
-			['uploadFile', 'file', 'types' => ['jpg', 'png', 'm4a'], 'maxFiles' => 1, 'maxSize' => 450*1024],
-		];
-	}
-	public function attributeLabels() {
-		return [
-			'uploadId' => Yii::t('sweelix', 'Upload ID'),
-			'uploadFile' => Yii::t('sweelix', 'Uploaded File'),
-		];
-	}
+        return [
+            // this rule is used to configure plupload :
+            //   * maxFiles trigger multifile upload,
+            //   * types    trigger the plupload filters
+            //   * maxSize  trigger the maxFileSize
+            ['uploadFile', 'file', 'types' => ['jpg', 'png', 'm4a'], 'maxFiles' => 1, 'maxSize' => 450*1024],
+        ];
+    }
+    public function attributeLabels() {
+        return [
+            'uploadId' => Yii::t('sweelix', 'Upload ID'),
+            'uploadFile' => Yii::t('sweelix', 'Uploaded File'),
+        ];
+    }
 }
 ```
 
@@ -226,34 +227,35 @@ use Yii;
 /**
  * This is a basic controller
  */
-class SiteController extends Controller {
-	public function actions() {
-		// add upload / preview and delete file management
-		return [
-			'async-upload' => 'sweelix\yii2\plupload\actions\UploadFile',
-			'async-delete' => 'sweelix\yii2\plupload\actions\DeleteFile',
-			'async-preview' => 'sweelix\yii2\plupload\actions\PreviewFile',
-		];
-	}
+class SiteController extends Controller 
+{
+    public function actions() {
+        // add upload / preview and delete file management
+        return [
+            'async-upload' => 'sweelix\yii2\plupload\actions\UploadFile',
+            'async-delete' => 'sweelix\yii2\plupload\actions\DeleteFile',
+            'async-preview' => 'sweelix\yii2\plupload\actions\PreviewFile',
+        ];
+    }
 
-	public function actionIndex() {
-		$fileUpload = new Upload();
-		if($fileUpload->load($_POST) === true) {
-			// ... perform pre save
-			$uploads = UploadedFile::getInstances($fileUpload, 'uploadFile');
-			// retrieve all uploaded files for name demoUpload
-			foreach($uploads as $uploadedFile) {
-				// ... save file ...
-				$uploadedFile->saveAs('@webroot/resources/'.$uploadedFile->name);
-			}
+    public function actionIndex() {
+        $fileUpload = new Upload();
+        if($fileUpload->load($_POST) === true) {
+            // ... perform pre save
+            $uploads = UploadedFile::getInstances($fileUpload, 'uploadFile');
+            // retrieve all uploaded files for name demoUpload
+            foreach($uploads as $uploadedFile) {
+                // ... save file ...
+                $uploadedFile->saveAs('@webroot/resources/'.$uploadedFile->name);
+            }
 
-			// ... perform post file save
-			$fileUpload->save();
-			// ... perform correct redirection
-		}
+            // ... perform post file save
+            $fileUpload->save();
+            // ... perform correct redirection
+        }
 
-		$this->render('index', ['fileUpload' => $fileUpload]);
-	}
+        $this->render('index', ['fileUpload' => $fileUpload]);
+    }
 }
 ```
 
@@ -264,9 +266,9 @@ The index view file
 // ...
 
 <?php echo Html::activeAsyncInput($fileUpload, 'uploadFile', ['config' => [
-		'ui' => true,
-		'auto' => true,
-	]]); ?>
+        'ui' => true,
+        'auto' => true,
+    ]]); ?>
 
 //...
 
@@ -285,42 +287,43 @@ use Yii;
 /**
  * Basic active record with uploadId (pkey autoincrement) and uploadFile (text)
  */
-class Upload extends ActiveRecord {
-	public static function tableName() {
-		return '{{uploads}}';
-	}
+class Upload extends ActiveRecord 
+{
+    public static function tableName() {
+        return '{{uploads}}';
+    }
 
-	public function behaviors() {
-		return [
-			[
-				'class' => AutomaticUpload::className(),
-				'attributes' => [
-					'uploadFile' => [
-						// define where to save the file
-						'basePath' => '@webroot/resources',
-						// define the url to access the file
-						'baseUrl' => '@web/resources',
-					],
-				]
-			]
-		];
-	}
+    public function behaviors() {
+        return [
+            [
+                'class' => AutomaticUpload::className(),
+                'attributes' => [
+                    'uploadFile' => [
+                        // define where to save the file
+                        'basePath' => '@webroot/resources',
+                        // define the url to access the file
+                        'baseUrl' => '@web/resources',
+                    ],
+                ]
+            ]
+        ];
+    }
 
-	public function rules() {
-		return [
-			// this rule is used to configure plupload :
-			//   * maxFiles trigger multifile upload,
-			//   * types    trigger the plupload filters
-			//   * maxSize  trigger the maxFileSize
-			['uploadFile', 'file', 'types' => ['jpg', 'png', 'm4a'], 'maxFiles' => 1, 'maxSize' => 450*1024],
-		];
-	}
-	public function attributeLabels() {
-		return [
-			'uploadId' => Yii::t('sweelix', 'Upload ID'),
-			'uploadFile' => Yii::t('sweelix', 'Uploaded File'),
-		];
-	}
+    public function rules() {
+        return [
+            // this rule is used to configure plupload :
+            //   * maxFiles trigger multifile upload,
+            //   * types    trigger the plupload filters
+            //   * maxSize  trigger the maxFileSize
+            ['uploadFile', 'file', 'types' => ['jpg', 'png', 'm4a'], 'maxFiles' => 1, 'maxSize' => 450*1024],
+        ];
+    }
+    public function attributeLabels() {
+        return [
+            'uploadId' => Yii::t('sweelix', 'Upload ID'),
+            'uploadFile' => Yii::t('sweelix', 'Uploaded File'),
+        ];
+    }
 }
 ```
 
@@ -339,26 +342,27 @@ use Yii;
 /**
  * This is a basic controller
  */
-class SiteController extends Controller {
-	public function actions() {
-		// add upload / preview and delete file management
-		return [
-			'async-upload' => 'sweelix\yii2\plupload\actions\UploadFile',
-			'async-delete' => 'sweelix\yii2\plupload\actions\DeleteFile',
-			'async-preview' => 'sweelix\yii2\plupload\actions\PreviewFile',
-		];
-	}
+class SiteController extends Controller 
+{
+    public function actions() {
+        // add upload / preview and delete file management
+        return [
+            'async-upload' => 'sweelix\yii2\plupload\actions\UploadFile',
+            'async-delete' => 'sweelix\yii2\plupload\actions\DeleteFile',
+            'async-preview' => 'sweelix\yii2\plupload\actions\PreviewFile',
+        ];
+    }
 
-	public function actionIndex() {
-		$fileUpload = new Upload();
-		if($fileUpload->load($_POST) === true) {
-			// ... file save is performed automagically
-			$fileUpload->save();
-			// ... perform correct redirection
-		}
+    public function actionIndex() {
+        $fileUpload = new Upload();
+        if($fileUpload->load($_POST) === true) {
+            // ... file save is performed automagically
+            $fileUpload->save();
+            // ... perform correct redirection
+        }
 
-		$this->render('index', ['fileUpload' => $fileUpload]);
-	}
+        $this->render('index', ['fileUpload' => $fileUpload]);
+    }
 }
 ```
 
@@ -369,9 +373,9 @@ The index view file
 // ...
 
 <?php echo Html::activeAsyncInput($fileUpload, 'uploadFile', ['config' => [
-		'ui' => true,
-		'auto' => true,
-	]]); ?>
+        'ui' => true,
+        'auto' => true,
+    ]]); ?>
 
 //...
 
