@@ -14,6 +14,7 @@
  */
 
 namespace sweelix\yii2\plupload;
+
 use yii\web\AssetBundle;
 
 /**
@@ -28,9 +29,10 @@ use yii\web\AssetBundle;
  * @package   sweelix.yii2.plupload
  * @since     1.0.0
  */
-class PluploadOriginalAsset extends AssetBundle {
-	public $sourcePath = '@vendor/sweelix/plupload/js';
-	public $js = [
-		'plupload.full.min.js',
-	];
+class PluploadOriginalAsset extends AssetBundle
+{
+    public $sourcePath = '@vendor/sweelix/plupload/js';
+    public $js = [
+        'plupload.full.min.js',
+    ];
 }
