@@ -7,7 +7,7 @@
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   1.0.1
+ * @version   1.0.2
  * @link      http://www.sweelix.net
  * @category  behaviors
  * @package   sweelix.yii2.plupload.behaviors
@@ -31,7 +31,7 @@ use Exception;
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   1.0.1
+ * @version   1.0.2
  * @link      http://www.sweelix.net
  * @category  behaviors
  * @package   sweelix.yii2.plupload.behaviors
