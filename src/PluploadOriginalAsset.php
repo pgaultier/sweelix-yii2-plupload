@@ -7,13 +7,14 @@
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   1.0.1
+ * @version   1.0.2
  * @link      http://www.sweelix.net
  * @category  plupload
  * @package   sweelix.yii2.plupload
  */
 
 namespace sweelix\yii2\plupload;
+
 use yii\web\AssetBundle;
 
 /**
@@ -22,15 +23,16 @@ use yii\web\AssetBundle;
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   1.0.1
+ * @version   1.0.2
  * @link      http://www.sweelix.net
  * @category  plupload
  * @package   sweelix.yii2.plupload
  * @since     1.0.0
  */
-class PluploadOriginalAsset extends AssetBundle {
-	public $sourcePath = '@vendor/sweelix/plupload/js';
-	public $js = [
-		'plupload.full.min.js',
-	];
+class PluploadOriginalAsset extends AssetBundle
+{
+    public $sourcePath = '@vendor/sweelix/plupload/js';
+    public $js = [
+        'plupload.full.min.js',
+    ];
 }
