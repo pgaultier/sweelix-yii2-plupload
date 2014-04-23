@@ -1,4 +1,6 @@
 
+version 1.0.2
+
  - make code PSR-2 compliant
  - fix Html::xxx without use statement 
 
