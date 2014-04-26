@@ -134,6 +134,10 @@ trait Plupload {
     {
         // prepare data
         $originalName = $name;
+        if (is_array($value) === true) {
+            $value = array_filter($value, function ($el) { return !empty($el); });
+        }
+
         if (empty($value) === true) {
             $value = null;
         }
