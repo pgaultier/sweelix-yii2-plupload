@@ -217,7 +217,7 @@ class PreviewFile extends Action
                     if ($tempFile === false) {
                         $image = Image::create($file)->resize($width, $height)->setFit($fit);
                         $imageContentType = $image->getContentType();
-                        $imageData = file_get_contents($image->getUrl(true));
+                        $imageData = file_get_contents($image->getPath());
                     } else {
                         try {
                             $image = Image::create($file)->resize($width, $height)->setFit($fit);

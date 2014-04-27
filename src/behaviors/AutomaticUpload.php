@@ -17,6 +17,7 @@ namespace sweelix\yii2\plupload\behaviors;
 
 use sweelix\yii2\plupload\components\UploadedFile;
 use yii\base\Behavior;
+use yii\base\InvalidParamException;
 use yii\validators\FileValidator;
 use yii\db\ActiveRecord;
 use yii\helpers\Json;
@@ -102,7 +103,11 @@ class AutomaticUpload extends Behavior
             if (is_callable($this->serializeCallback) === true) {
                 $this->owner->{$attribute} = call_user_func([$this, 'serializeCallback'], $this->owner->{$attribute});
             } else {
-                $this->owner->{$attribute} = Json::encode($this->owner->{$attribute});
+                $data = $this->owner->{$attribute};
+                if (is_array($data) === true) {
+                    $data = array_filter($data, function($el) { return (empty($el) === false); });
+                }
+                $this->owner->{$attribute} = Json::encode($data);
             }
         } else {
             $realData = $this->owner->{$attribute};
@@ -127,7 +132,11 @@ class AutomaticUpload extends Behavior
             if (is_callable($this->unserializeCallback) === true) {
                 $attributeContent = call_user_func([$this, 'unserializeCallback'], $this->owner->{$attribute});
             } else {
-                $attributeContent = Json::decode($this->owner->{$attribute});
+                try {
+                    $attributeContent = Json::decode($this->owner->{$attribute});
+                } catch (InvalidParamException $e) {
+                    $attributeContent = [];
+                }
             }
 
             if ((is_array($attributeContent) === false) && (empty($attributeContent) === false)) {
@@ -248,19 +257,17 @@ class AutomaticUpload extends Behavior
      */
     public function beforeInsert()
     {
-        if ($this->modelIsUpdating === false) {
-            foreach ($this->attributes as $attribute => $config) {
-                if ($this->shouldExpandAliasPath($attribute) === true) {
-                    $this->modelShouldBeSaved = true;
-                    break;
-                }
+        foreach ($this->attributes as $attribute => $config) {
+            if ($this->shouldExpandAliasPath($attribute) === true) {
+                $this->modelShouldBeSaved = true;
+                break;
             }
-            if ($this->modelShouldBeSaved === false) {
-                $this->beforeUpdate();
-            } else {
-                foreach ($this->attributes as $attribute => $config) {
-                    $this->serializeAttribute($attribute);
-                }
+        }
+        if ($this->modelShouldBeSaved === false) {
+            $this->beforeUpdate();
+        } else {
+            foreach ($this->attributes as $attribute => $config) {
+                $this->serializeAttribute($attribute);
             }
         }
     }
@@ -272,23 +279,29 @@ class AutomaticUpload extends Behavior
      * @since  1.0.0
      */
     public function afterInsert()
-    {
-        if ($this->modelIsUpdating === false) {
-            if ($this->modelShouldBeSaved === true) {
-                // avoid to save everything twice
-                $this->modelShouldBeSaved = false;
+ {
+        if ($this->modelShouldBeSaved === true) {
+            // avoid to save everything twice
+            $this->modelShouldBeSaved = false;
 
-                foreach ($this->attributes as $attribute => $config) {
-                    $this->unserializeAttribute($attribute);
-                }
-                $this->beforeUpdate();
-                $attributes = array_keys($this->attributes);
-                $this->modelIsUpdating = true;
-                $this->owner->updateAttributes($attributes);
-                $this->modelIsUpdating = false;
-                foreach ($this->attributes as $attribute => $config) {
-                    $this->unserializeAttribute($attribute);
-                }
+            foreach ($this->attributes as $attribute => $config) {
+                $this->unserializeAttribute($attribute);
+            }
+            $this->beforeUpdate();
+            $attributes = array_keys($this->attributes);
+            $sAttributes = [];
+            foreach ($attributes as $attribute) {
+                $sAttributes[$attribute] = $this->owner->{$attribute};
+            }
+            if (empty($sAttributes) === false) {
+                $condition = $this->owner->getPrimaryKey(true);
+                $modelClass = get_class($this->owner);
+                $command = $modelClass::getDb()->createCommand();
+                $command->update($modelClass::tableName(), $sAttributes, $condition);
+                $command->execute();
+            }
+            foreach ($this->attributes as $attribute => $config) {
+                $this->unserializeAttribute($attribute);
             }
         }
     }
@@ -330,46 +343,48 @@ class AutomaticUpload extends Behavior
      */
     public function beforeUpdate()
     {
-        if ($this->modelIsUpdating === false) {
-            foreach ($this->attributes as $attribute => $config) {
-                $aliasPath = $this->getAliasPath($attribute, true);
+        foreach ($this->attributes as $attribute => $config) {
+            $aliasPath = $this->getAliasPath($attribute, true);
 
-                if (is_array($this->owner->{$attribute}) === false) {
+            if (is_array($this->owner->{$attribute}) === false) {
+                if (empty($this->owner->{$attribute}) === false) {
                     $this->owner->{$attribute} = [$this->owner->{$attribute}];
+                } else {
+                    $this->owner->{$attribute} = [];
                 }
-                // clean up attributes
-                $this->owner->{$attribute} = $this->cleanUpProperty($this->owner->{$attribute});
-                $selectedFiles = $this->owner->{$attribute};
+            }
+            // clean up attributes
+            $this->owner->{$attribute} = $this->cleanUpProperty($this->owner->{$attribute});
+            $selectedFiles = $this->owner->{$attribute};
 
-                $savedFiles = [];
-                $attributeName = Html::getInputName($this->owner, $attribute);
-                $uploadedFiles = UploadedFile::getInstancesByName($attributeName);
+            $savedFiles = [];
+            $attributeName = Html::getInputName($this->owner, $attribute);
+            $uploadedFiles = UploadedFile::getInstancesByName($attributeName);
 
-                foreach ($uploadedFiles as $instance) {
-                    if (in_array($instance->name, $selectedFiles) === true) {
-                        $fileName = static::sanitize($instance->name);
-                        if (empty($instance->tempName) === true) {
-                            // image was uploaded earlier
-                            // we should probably check if image is always available
+            foreach ($uploadedFiles as $instance) {
+                if (in_array($instance->name, $selectedFiles) === true) {
+                    $fileName = static::sanitize($instance->name);
+                    if (empty($instance->tempName) === true) {
+                        // image was uploaded earlier
+                        // we should probably check if image is always available
+                        $savedFiles[] = $fileName;
+                    } else {
+                        $targetFile = Yii::getAlias($aliasPath.'/'.$fileName);
+                        $targetPath = pathinfo($targetFile, PATHINFO_DIRNAME);
+                        if (is_dir($targetPath) === false) {
+                            if (mkdir($targetPath, 0755, true) === false) {
+                                throw new Exception('Unable to create path : "'.$targetPath.'"');
+                            }
+                        }
+                        if ($instance->saveAs($targetFile) === true) {
+                            //TODO: saved files must be removed - correct place would be in UploadedFile
                             $savedFiles[] = $fileName;
-                        } else {
-                            $targetFile = Yii::getAlias($aliasPath.'/'.$fileName);
-                            $targetPath = pathinfo($targetFile, PATHINFO_DIRNAME);
-                            if (is_dir($targetPath) === false) {
-                                if (mkdir($targetPath, 0755, true) === false) {
-                                    throw new Exception('Unable to create path : "'.$targetPath.'"');
-                                }
-                            }
-                            if ($instance->saveAs($targetFile) === true) {
-                                //TODO: saved files must be removed - correct place would be in UploadedFile
-                                $savedFiles[] = $fileName;
-                            }
                         }
                     }
                 }
-                $this->owner->{$attribute} = $savedFiles;
-                $this->serializeAttribute($attribute);
             }
+            $this->owner->{$attribute} = $savedFiles;
+            $this->serializeAttribute($attribute);
         }
     }
 
