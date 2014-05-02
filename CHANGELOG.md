@@ -1,8 +1,12 @@
 
+- PSR-2 cleanup
+- Adding some doc
+- fix bad automatic upload
+
 version 1.0.2
 
  - make code PSR-2 compliant
- - fix Html::xxx without use statement 
+ - fix Html::xxx without use statement
 
 version 1.0.1
 
