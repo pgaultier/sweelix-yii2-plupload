@@ -7,7 +7,7 @@
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   1.0.2
+ * @version   1.0.3
  * @link      http://www.sweelix.net
  * @category  traits
  * @package   sweelix.yii2.plupload.traits
@@ -17,6 +17,7 @@ namespace sweelix\yii2\plupload\traits;
 
 use sweelix\yii2\plupload\components\UploadedFile;
 use sweelix\yii2\plupload\PluploadAsset;
+use sweelix\yii2\plupload\PluploadOriginalAsset;
 use sweelix\yii2\plupload\PluploadUiAsset;
 use yii\helpers\ArrayHelper;
 use yii\helpers\Url;
@@ -33,7 +34,7 @@ use Yii;
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   1.0.2
+ * @version   1.0.3
  * @link      http://www.sweelix.net
  * @category  traits
  * @package   sweelix.yii2.plupload.traits
@@ -134,6 +135,10 @@ trait Plupload {
     {
         // prepare data
         $originalName = $name;
+        if (is_array($value) === true) {
+            $value = array_filter($value, function ($el) { return !empty($el); });
+        }
+
         if (empty($value) === true) {
             $value = null;
         }
@@ -281,7 +286,7 @@ trait Plupload {
     {
         Yii::$app->getSession()->open();
         $config = [
-            'runtimes' => 'html5, html4', // default to html5 / html4 / flash
+            'runtimes' => 'html5, flash, html4', // default to html5 / html4 / flash
             // 'dropElement' => $htmlOptions['id'].'_zone',
             // 'dropText' => \Yii::t('sweelix', 'Drop files here'),
             'ui' => false,
@@ -362,7 +367,7 @@ trait Plupload {
             $view = Yii::$app->getView();
             PluploadAsset::register($view);
         }
-        $pluploadAssetBundle = Yii::$app->getAssetManager()->getBundle(PluploadAsset::className());
+        $pluploadAssetBundle = Yii::$app->getAssetManager()->getBundle(PluploadOriginalAsset::className());
         if ((strpos($config['runtimes'], 'flash') !== false) || (strpos($config['runtimes'], 'silverlight') !== false)) {
             $config['flashSwfUrl'] = $pluploadAssetBundle->baseUrl.'/Moxie.swf';
             $config['silverlightXapUrl'] = $pluploadAssetBundle->baseUrl.'/Moxie.xap';

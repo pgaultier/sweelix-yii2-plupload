@@ -27,7 +27,32 @@ If you use Packagist for installing packages, then you can update your composer.
 Howto use this extension
 ------------------------
 
-Once package has been installed, add the extension in your ```Html``` helper class :
+Once package has been installed:
+
+activate Image management,by adding it to Yii components
+
+``` php
+// Yii2 app configuration
+components => [
+
+    // ... exiting components
+
+    'image' => [
+        'class' => 'sweelix\yii2\image\Config',
+        'quality' => 80,
+        'cachingMode' => sweelix\image\Image::MODE_NORMAL,
+        'urlSeparator' => '/',
+        'cachePath' => '@webroot/cache',
+        'cacheUrl' => '@web/cache',
+        'errorImage' => 'error.jpg',
+    ]
+
+    // ... exiting components
+
+]
+```
+
+add the extension in your ```Html``` helper class :
 
 ``` php
 
@@ -36,7 +61,7 @@ namespace app\components;
 use yii\helpers\Html as BaseHtml;
 use sweelix\yii2\plupload\traits\Plupload;
 
-class Html extends BaseHtml 
+class Html extends BaseHtml
 {
     // adding this trait allow easy access to plupload
     use Plupload;
@@ -227,7 +252,7 @@ use Yii;
 /**
  * This is a basic controller
  */
-class SiteController extends Controller 
+class SiteController extends Controller
 {
     public function actions() {
         // add upload / preview and delete file management
@@ -287,7 +312,7 @@ use Yii;
 /**
  * Basic active record with uploadId (pkey autoincrement) and uploadFile (text)
  */
-class Upload extends ActiveRecord 
+class Upload extends ActiveRecord
 {
     public static function tableName() {
         return '{{uploads}}';
@@ -342,7 +367,7 @@ use Yii;
 /**
  * This is a basic controller
  */
-class SiteController extends Controller 
+class SiteController extends Controller
 {
     public function actions() {
         // add upload / preview and delete file management

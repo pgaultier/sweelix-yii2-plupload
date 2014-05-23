@@ -1,8 +1,16 @@
 
+version 1.0.3
+
+- PSR-2 cleanup
+- Adding some doc
+- fix bad automatic upload
+- fix bad runtime management when flash active
+- changed default runtimes order to html5, flash, html4
+
 version 1.0.2
 
  - make code PSR-2 compliant
- - fix Html::xxx without use statement 
+ - fix Html::xxx without use statement
 
 version 1.0.1
 
