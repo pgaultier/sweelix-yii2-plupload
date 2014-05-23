@@ -17,6 +17,7 @@ namespace sweelix\yii2\plupload\traits;
 
 use sweelix\yii2\plupload\components\UploadedFile;
 use sweelix\yii2\plupload\PluploadAsset;
+use sweelix\yii2\plupload\PluploadOriginalAsset;
 use sweelix\yii2\plupload\PluploadUiAsset;
 use yii\helpers\ArrayHelper;
 use yii\helpers\Url;
@@ -366,7 +367,7 @@ trait Plupload {
             $view = Yii::$app->getView();
             PluploadAsset::register($view);
         }
-        $pluploadAssetBundle = Yii::$app->getAssetManager()->getBundle(PluploadAsset::className());
+        $pluploadAssetBundle = Yii::$app->getAssetManager()->getBundle(PluploadOriginalAsset::className());
         if ((strpos($config['runtimes'], 'flash') !== false) || (strpos($config['runtimes'], 'silverlight') !== false)) {
             $config['flashSwfUrl'] = $pluploadAssetBundle->baseUrl.'/Moxie.swf';
             $config['silverlightXapUrl'] = $pluploadAssetBundle->baseUrl.'/Moxie.xap';
