@@ -1,4 +1,6 @@
 
+version 1.0.3
+
 - PSR-2 cleanup
 - Adding some doc
 - fix bad automatic upload

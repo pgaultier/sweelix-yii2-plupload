@@ -7,7 +7,7 @@
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   1.0.2
+ * @version   1.0.3
  * @link      http://www.sweelix.net
  * @category  traits
  * @package   sweelix.yii2.plupload.traits
@@ -34,7 +34,7 @@ use Yii;
  * @author    Philippe Gaultier <pgaultier@sweelix.net>
  * @copyright 2010-2014 Sweelix
  * @license   http://www.sweelix.net/license license
- * @version   1.0.2
+ * @version   1.0.3
  * @link      http://www.sweelix.net
  * @category  traits
  * @package   sweelix.yii2.plupload.traits
