@@ -2,6 +2,8 @@
 - PSR-2 cleanup
 - Adding some doc
 - fix bad automatic upload
+- fix bad runtime management when flash active
+- changed default runtimes order to html5, flash, html4
 
 version 1.0.2
 
