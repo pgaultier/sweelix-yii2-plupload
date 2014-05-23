@@ -286,7 +286,7 @@ trait Plupload {
     {
         Yii::$app->getSession()->open();
         $config = [
-            'runtimes' => 'html5, html4', // default to html5 / html4 / flash
+            'runtimes' => 'html5, flash, html4', // default to html5 / html4 / flash
             // 'dropElement' => $htmlOptions['id'].'_zone',
             // 'dropText' => \Yii::t('sweelix', 'Drop files here'),
             'ui' => false,
