@@ -192,17 +192,17 @@ class AutomaticUpload extends Behavior
     }
 
     /**
-     * Get file type allowed for the attribute
+     * Get file extensions allowed for the attribute
      *
      * @param string $attribute the source attribute
      *
      * @return string
      * @since  1.0.1
      */
-    public function getFileTypes($attribute)
+    public function getFileExtensions($attribute)
     {
         $config = $this->getValidatorConfig($attribute);
-        return $config['allowedTypes'];
+        return $config['allowedExtensions'];
     }
 
     /**
@@ -225,7 +225,7 @@ class AutomaticUpload extends Behavior
             $config = [
                 'multiFile' => false,
                 'maxFileSize' => 0,
-                'allowedTypes' => null,
+                'allowedExtensions' => null,
             ];
             foreach ($this->owner->getActiveValidators($attribute) as $validator) {
                 if ($validator instanceof FileValidator) {
@@ -234,8 +234,8 @@ class AutomaticUpload extends Behavior
                         // multi add brackets
                         $config['multiFile'] = true;
                     }
-                    if (empty($validator->types) === false) {
-                        $config['allowedTypes'] = implode(',', $validator->types);
+                    if (empty($validator->extensions) === false) {
+                        $config['allowedExtensions'] = implode(',', $validator->extensions);
                     }
                     if (($validator->maxSize !== null) && ($validator->maxSize > 0)) {
                         $config['maxFileSize'] = $validator->maxSize;

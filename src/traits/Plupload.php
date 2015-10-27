@@ -73,12 +73,12 @@ trait Plupload {
             if ($model->getMaxFileSize($attribute) > 0) {
                 $filters['max_file_size'] = $model->getMaxFileSize($attribute);
             }
-            $fileTypes = $model->getFileTypes($attribute);
-            if (empty($fileTypes) === false) {
+            $fileExtensions = $model->getFileExtensions($attribute);
+            if (empty($fileExtensions) === false) {
                 $filters['mime_types'] = [
                     [
                         'title' => Yii::t('sweelix', 'Allowed files'),
-                        'extensions' => $fileTypes,
+                        'extensions' => $fileExtensions,
                     ]
                 ];
             }
@@ -88,11 +88,11 @@ trait Plupload {
             foreach ($model->getActiveValidators($attribute) as $validator) {
                 if ($validator instanceof FileValidator) {
                     // we can set all the parameters
-                    if (empty($validator->types) === false) {
+                    if (empty($validator->extensions) === false) {
                         $filters['mime_types'] = [
                             [
                                 'title' => Yii::t('sweelix', 'Allowed files'),
-                                'extensions' => implode(',', $validator->types),
+                                'extensions' => implode(',', $validator->extensions),
                             ]
                         ];
                     }
