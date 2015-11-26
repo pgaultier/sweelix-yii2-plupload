@@ -222,10 +222,10 @@ class Upload extends ActiveRecord {
 
         return [
             // this rule is used to configure plupload :
-            //   * maxFiles trigger multifile upload,
-            //   * types    trigger the plupload filters
-            //   * maxSize  trigger the maxFileSize
-            ['uploadFile', 'file', 'types' => ['jpg', 'png', 'm4a'], 'maxFiles' => 1, 'maxSize' => 450*1024],
+            //   * maxFiles   trigger multifile upload,
+            //   * extensions trigger the plupload filters
+            //   * maxSize    trigger the maxFileSize
+            ['uploadFile', 'file', 'extensions' => ['jpg', 'png', 'm4a'], 'maxFiles' => 1, 'maxSize' => 450*1024],
         ];
     }
     public function attributeLabels() {
@@ -337,10 +337,10 @@ class Upload extends ActiveRecord
     public function rules() {
         return [
             // this rule is used to configure plupload :
-            //   * maxFiles trigger multifile upload,
-            //   * types    trigger the plupload filters
-            //   * maxSize  trigger the maxFileSize
-            ['uploadFile', 'file', 'types' => ['jpg', 'png', 'm4a'], 'maxFiles' => 1, 'maxSize' => 450*1024],
+            //   * maxFiles   trigger multifile upload,
+            //   * extensions trigger the plupload filters
+            //   * maxSize    trigger the maxFileSize
+            ['uploadFile', 'file', 'extensions' => ['jpg', 'png', 'm4a'], 'maxFiles' => 1, 'maxSize' => 450*1024],
         ];
     }
     public function attributeLabels() {
